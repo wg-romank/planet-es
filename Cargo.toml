@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
+wavefront_obj = "10"
+try-guard="0.2.0"
 glfw = "0.41"
 luminance = "0.44"
+luminance-front = "0.4"
 luminance-glfw = "0.16"
 luminance-windowing = "0.10"
 luminance-derive = "0.7"
