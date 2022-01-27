@@ -1,6 +1,7 @@
 use std::time::Instant;
 use std::collections::HashMap;
 use std::process::exit;
+use console_error_panic_hook;
 
 // use luminance_front::tess::TessError;
 // use luminance_front::tess::Interleaved;
@@ -9,6 +10,7 @@ use std::process::exit;
 // use luminance::context::GraphicsContext; 
 // use luminance::context::GraphicsContext as _; 
 
+use js_sys::Date;
 use luminance::context::GraphicsContext;
 // use glfw::{Action, Context as _, Key, WindowEvent};
 // use luminance_glfw::GlfwSurface;
@@ -64,50 +66,23 @@ macro_rules! log {
 }
 
 #[wasm_bindgen]
-pub fn run(canvas_name: &str) {
-  let surface = WebSysWebGL2Surface::new(canvas_name);
-
-  match surface {
-    Ok(surface) => {
-      log!("graphics surface created");
-      main_loop(surface);
-    }
-    Err(e) => {
-      log!("cannot create graphics surface:\n{}", e);
-      exit(1);
-    }
-  }
+pub struct Render {
+  surface: WebSysWebGL2Surface
 }
 
+#[wasm_bindgen]
+impl Render {
+  pub fn new(canvas_name: &str) -> Render {
+    let surface = WebSysWebGL2Surface::new(canvas_name).expect("failed to create surface");
 
-fn main_loop(surface: WebSysWebGL2Surface) {
-  let start_t = Instant::now();
-  let mut ctxt = surface;
-  // let events = surface.events_rx;
-  let back_buffer = ctxt.back_buffer().expect("back buffer");
+    Render { surface }
+  }
 
-  // let shape = Obj::load("Box.obj").unwrap().to_tess(&mut ctxt).unwrap();
-  
-  // let mut program = ctxt
-  //   .new_shader_program::<VertexSemantics, (), ()>()
-  //   .from_strings(VS_STR, None, None, FS_STR)
-  //   .unwrap()
-  //   .ignore_warnings();
+  pub fn frame(&mut self, elapsed: f32) {
+    let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
+    let back_buffer = self.surface.back_buffer().expect("back buffer");
 
-  'app: loop {
-    // handle events
-    // ctxt.window.glfw.poll_events();
-    // for (_, event) in glfw::flush_messages(&events) {
-    //   match event {
-    //     WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
-    //     _ => (),
-    //   }
-    // }
-    // rendering code goes here
-    let t = start_t.elapsed().as_secs_f32();
-    let color = [t.cos(), t.sin(), 0.5, 1.];
-
-    let render = ctxt
+    let render = self.surface
       .new_pipeline_gate()
       .pipeline(
         &back_buffer,
@@ -123,12 +98,8 @@ fn main_loop(surface: WebSysWebGL2Surface) {
       )
       .assume();
 
-    // swap buffer chains
-    if render.is_ok() {
-      // ctxt.window.swap_buffers();
-      log!("render ok");
-    } else {
-      break 'app;
+    if !render.is_ok() {
+      log!("error rendering {:?}", render.into_result());
     }
   }
 }

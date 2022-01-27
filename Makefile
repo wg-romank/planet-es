@@ -9,3 +9,7 @@ serve: build
 
 test:
 	cargo test
+
+package:
+	rm -rf docs
+	cd www && npm run build
