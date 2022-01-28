@@ -62,8 +62,11 @@ macro_rules! log {
   }
 }
 
+use bracket_noise::prelude::FastNoise;
+
 #[wasm_bindgen]
 pub struct Render {
+  noise: FastNoise,
   surface: WebSysWebGL2Surface,
   sphere: Vec<luminance::tess::Tess<Backend, ObjVertex, u32>>,
   program: Program<VertexSemantics, (), ShaderInterface>,
@@ -74,8 +77,10 @@ impl Render {
   pub fn new(canvas_name: &str) -> Render {
     console_error_panic_hook::set_once();
 
+    let mut noise = FastNoise::new();
+
     let mut surface = WebSysWebGL2Surface::new(canvas_name).expect("failed to create surface");
-    let sphere = DIRECTIONS.iter().map(|dir| Face::new(dir, 32).to_tess(&mut surface).expect("failed to create sphere")).collect();
+    let sphere = DIRECTIONS.iter().map(|dir| Face::new(dir, 32, &noise).to_tess(&mut surface).expect("failed to create sphere")).collect();
 
     let program = surface
       .new_shader_program::<VertexSemantics, (), ShaderInterface>()
@@ -83,7 +88,7 @@ impl Render {
       .expect("failed to create program")
       .ignore_warnings();
 
-    Render { surface, sphere, program }
+    Render { noise, surface, sphere, program }
   }
 
   pub fn frame(&mut self, elapsed: f32) {
@@ -94,8 +99,12 @@ impl Render {
     let program = &mut self.program;
     let ctxt = &mut self.surface;
 
-    let rotation = vek::mat4::Mat4::identity();
-    let normal_matrix = vek::mat4::Mat4::identity();
+    let mut rotation = vek::mat4::Mat4::identity();
+    rotation.rotate_y(elapsed);
+
+    let mut normal_matrix = vek::mat4::Mat4::identity();
+    normal_matrix.invert();
+    normal_matrix.transpose();
 
     let render = ctxt
       .new_pipeline_gate()
@@ -155,44 +164,45 @@ impl Face {
       .build()
   }
 
-  fn new(dir: &Vec3<f32>, res: usize) -> Face {
+  fn new(dir: &Vec3<f32>, res: usize, noise: &FastNoise) -> Face {
     let mut vertices = Vec::<ObjVertex>::new();
     let mut indices = Vec::<VertexIndex>::new();
 
-    // for dir in DIRECTIONS.iter() {
-      let axis_a = Vec3::new(dir.y, dir.z, dir.x);
-      let axis_b = dir.cross(axis_a);
+    let axis_a = Vec3::new(dir.y, dir.z, dir.x);
+    let axis_b = dir.cross(axis_a);
 
-      for y in 0..res {
-        for x in 0..res {
-          let i = (x + y * res) as u32;
-          let scale_x = x as f32 / (res as f32 - 1.);
-          let scale_y = y as f32 / (res as f32 - 1.);
+    for y in 0..res {
+      for x in 0..res {
+        let i = (x + y * res) as u32;
+        let scale_x = x as f32 / (res as f32 - 1.);
+        let scale_y = y as f32 / (res as f32 - 1.);
 
-          let mut vertex = dir + (scale_x * 2. - 1.) * axis_a + (scale_y * 2. - 1.) * axis_b;
-          vertex.normalize();
+        let mut vertex = dir + (scale_x * 2. - 1.) * axis_a + (scale_y * 2. - 1.) * axis_b;
+        vertex.normalize();
 
-          let pos: [f32; 3] = [vertex.x, vertex.y, vertex.z];
+        let n = noise.get_noise3d(vertex.x, vertex.y, vertex.z);
+        vertex = vertex * 0.9 + vertex * 0.1 * n;
 
-          vertices.push(
-            ObjVertex::new(
-              VertexPosition::new(pos),
-              VertexNormal::new(pos)
-            )
-          );
+        let pos: [f32; 3] = [vertex.x, vertex.y, vertex.z];
 
-          if x != res - 1 && y != res - 1 {
-            indices.push(i);
-            indices.push(i + res as u32 + 1);
-            indices.push(i + res as u32);
+        vertices.push(
+          ObjVertex::new(
+            VertexPosition::new(pos),
+            VertexNormal::new(pos)
+          )
+        );
 
-            indices.push(i);
-            indices.push(i + 1);
-            indices.push(i + res as u32 + 1);
-          }
+        if x != res - 1 && y != res - 1 {
+          indices.push(i);
+          indices.push(i + res as u32 + 1);
+          indices.push(i + res as u32);
+
+          indices.push(i);
+          indices.push(i + 1);
+          indices.push(i + res as u32 + 1);
         }
       }
-    // }
+    }
 
     Face { vertices, indices }
   }

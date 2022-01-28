@@ -18,6 +18,7 @@ luminance-webgl = "0.6.0"
 luminance-derive = "0.9"
 console_error_panic_hook = "*"
 vek = "0.15.5"
+bracket-noise = "0.8.2"
 
 [dependencies.web-sys]
 version = "0.3.39"
@@ -35,6 +36,9 @@ features = [
   'WebGlUniformLocation',
   'Window',
 ]
+
+[dependencies.getrandom]
+features = ['js']
 
 
 [profile.release]
