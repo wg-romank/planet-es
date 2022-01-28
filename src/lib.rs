@@ -101,8 +101,9 @@ impl Render {
 
     let mut rotation = vek::mat4::Mat4::identity();
     rotation.rotate_y(elapsed);
+    rotation.rotate_x(elapsed / 2.);
 
-    let mut normal_matrix = vek::mat4::Mat4::identity();
+    let mut normal_matrix = rotation.clone();
     normal_matrix.invert();
     normal_matrix.transpose();
 
