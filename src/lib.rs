@@ -1,25 +1,19 @@
 use console_error_panic_hook;
 
-use luminance::backend::tess_gate;
+use luminance::UniformInterface;
+use luminance::shader::Uniform;
+use luminance::shader::types::{Mat44, Vec4};
+use luminance_web_sys::WebSysWebGL2Surface;
+
 use luminance::render_state::RenderState;
-use luminance_front::shader::Program;
 use luminance::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
 
-use luminance::tess::{Interleaved, Mode, TessError};
-use luminance_front::tess::Tess;
-use luminance_web_sys::WebSysWebGL2Surface;
+use luminance_front::shader::Program;
+use luminance_front::tess::{Tess, Mode, TessError, Interleaved};
+use luminance_front::Backend;
 
-use luminance_webgl::WebGL2;
 use wasm_bindgen::prelude::*;
-
-// use wasm_bindgen::JsCast;
-// use web_sys;
-
-// use luminance::tess::Mode;
-
-// use luminance::shader::Program;
-// use luminance::render_state::RenderState;
 
 const VS_STR: &str = include_str!("../shaders/vs.glsl");
 const FS_STR: &str = include_str!("../shaders/fs.glsl");
@@ -30,17 +24,37 @@ use luminance_derive::{Semantics, Vertex};
 pub enum VertexSemantics {
   #[sem(name = "position", repr = "[f32; 3]", wrapper = "VertexPosition")]
   Position,
+
+  #[sem(name = "norm", repr = "[f32; 3]", wrapper = "VertexNormal")]
+  Normal,
 }
 
 #[derive(Clone, Copy, Debug, Vertex)]
 #[vertex(sem = "VertexSemantics")]
 struct ObjVertex {
   position: VertexPosition,
+  norm: VertexNormal,
 }
 
 type VertexIndex = u32;
 
-// use luminance_front::Backend;
+
+#[derive(Debug, UniformInterface)]
+struct ShaderInterface {
+  // #[uniform(unbound)]
+  // projection: Uniform<Mat44<f32>>,
+  // #[uniform(unbound)]
+  // view: Uniform<Mat44<f32>>
+
+  #[uniform(name ="rotation", unbound)]
+  rotation: Uniform<Mat44<f32>>,
+
+  #[uniform(name = "normalMatrix", unbound)]
+  normal_matrix: Uniform<Mat44<f32>>,
+
+  #[uniform(name = "color")]
+  color: Uniform<Vec4<f32>>,
+}
 
 macro_rules! log {
   ( $( $t:tt )* ) => {
@@ -51,8 +65,8 @@ macro_rules! log {
 #[wasm_bindgen]
 pub struct Render {
   surface: WebSysWebGL2Surface,
-  sphere: Vec<luminance::tess::Tess<WebGL2, ObjVertex, u32>>,
-  program: Program<VertexSemantics, (), ()>,
+  sphere: Vec<luminance::tess::Tess<Backend, ObjVertex, u32>>,
+  program: Program<VertexSemantics, (), ShaderInterface>,
 }
 
 #[wasm_bindgen]
@@ -64,7 +78,7 @@ impl Render {
     let sphere = DIRECTIONS.iter().map(|dir| Face::new(dir, 32).to_tess(&mut surface).expect("failed to create sphere")).collect();
 
     let program = surface
-      .new_shader_program::<VertexSemantics, (), ()>()
+      .new_shader_program::<VertexSemantics, (), ShaderInterface>()
       .from_strings(VS_STR, None, None, FS_STR)
       .expect("failed to create program")
       .ignore_warnings();
@@ -80,14 +94,21 @@ impl Render {
     let program = &mut self.program;
     let ctxt = &mut self.surface;
 
+    let rotation = vek::mat4::Mat4::identity();
+    let normal_matrix = vek::mat4::Mat4::identity();
+
     let render = ctxt
       .new_pipeline_gate()
       .pipeline(
         &back_buffer,
-        &PipelineState::default().set_clear_color(color),
+        &PipelineState::default(), //.set_clear_color(color),
         |_, mut shd_gate| {
-          shd_gate.shade(program, |_, _, mut rdr_gate| {
+          shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              iface.set(&uni.rotation, rotation.into_row_arrays().into());
+              iface.set(&uni.normal_matrix, normal_matrix.into_row_arrays().into());
+              iface.set(&uni.color, color.into());
+
               sphere.iter().map(|f| tess_gate.render(f)).collect::<Result<(), _>>()
             })
           })
@@ -125,7 +146,7 @@ impl Face {
     ctxt: &mut C,
   ) -> Result<Tess<ObjVertex, VertexIndex, (), Interleaved>, TessError>
   where
-    C: GraphicsContext<Backend = WebGL2> {
+    C: GraphicsContext<Backend = Backend> {
     ctxt
       .new_tess()
       .set_mode(Mode::Triangle)
@@ -145,13 +166,20 @@ impl Face {
       for y in 0..res {
         for x in 0..res {
           let i = (x + y * res) as u32;
-          let scale_x = x as f32 / res as f32;
-          let scale_y = y as f32 / res as f32;
+          let scale_x = x as f32 / (res as f32 - 1.);
+          let scale_y = y as f32 / (res as f32 - 1.);
 
           let mut vertex = dir + (scale_x * 2. - 1.) * axis_a + (scale_y * 2. - 1.) * axis_b;
           vertex.normalize();
 
-          vertices.push(ObjVertex::new(VertexPosition::new([vertex.x, vertex.y, vertex.z])));
+          let pos: [f32; 3] = [vertex.x, vertex.y, vertex.z];
+
+          vertices.push(
+            ObjVertex::new(
+              VertexPosition::new(pos),
+              VertexNormal::new(pos)
+            )
+          );
 
           if x != res - 1 && y != res - 1 {
             indices.push(i);

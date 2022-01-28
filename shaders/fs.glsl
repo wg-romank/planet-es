@@ -1,5 +1,6 @@
 // this was the vertex shader output; it’s now our (rasterized and interpolated) input!
-// in vec3 v_color;
+in vec3 vLighting;
+in vec4 vColor;
 
 // we will output a single color
 out vec4 frag_color;
@@ -7,5 +8,6 @@ out vec4 frag_color;
 void main() {
   // KISS
   // frag_color = vec4(v_color, 1.0);
-  frag_color = vec4(1.0, 0.4, 0.7, 1.0);
+  // frag_color = vec4(1.0, 0.4, 0.7, 1.0);
+  frag_color = vec4(vLighting, 1) * vColor;
 }
