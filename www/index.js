@@ -1,5 +1,11 @@
 import * as fl from "florest";
 
+let canvas = document.getElementById("florest-canvas");
+const brect = canvas.getBoundingClientRect();
+
+canvas.setAttribute('width', brect.width);
+canvas.setAttribute('height', brect.height);
+
 let started = new Date().valueOf();
 let r = fl.Render.new("florest-canvas");
 
