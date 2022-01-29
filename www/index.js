@@ -7,7 +7,6 @@ canvas.setAttribute('width', brect.width);
 canvas.setAttribute('height', brect.height);
 
 let r = fl.Render.new("florest-canvas");
-
 let lastCall = 0;
 let cum = 0;
 

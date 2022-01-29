@@ -18,16 +18,23 @@
                 justify-content: center;
                 background-color: black;
             }
-            canvas {
-                /* width: 100vw;
-                height: 100vh; */
+            #florest-canvas {
+                z-index: -1;
+                position: absolute;
                 width: 400px;
                 height: 400px;
+                display: block;
+            }
+            #ui {
+                position: absolute;
+                width: 100vw;
+                height: 100vh;
                 display: block;
             }
         </style>
     </head>
     <body>
+        <canvas id="ui"></canvas>
         <canvas id="florest-canvas"></canvas>
         <script src="./bootstrap.js"></script>
     </body>
