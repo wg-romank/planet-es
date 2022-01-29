@@ -19,6 +19,8 @@ luminance-derive = "0.9"
 console_error_panic_hook = "*"
 vek = "0.15.5"
 bracket-noise = "0.8.2"
+serde = "1.0.136"
+serde_json = "1.0.78"
 
 [dependencies.web-sys]
 version = "0.3.39"

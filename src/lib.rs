@@ -13,6 +13,7 @@ use luminance_front::shader::Program;
 use luminance_front::tess::{Tess, Mode, TessError, Interleaved};
 use luminance_front::Backend;
 
+use serde::{Serialize, Deserialize};
 use wasm_bindgen::prelude::*;
 
 const VS_STR: &str = include_str!("../shaders/vs.glsl");
@@ -65,15 +66,26 @@ macro_rules! log {
 use bracket_noise::prelude::FastNoise;
 
 #[wasm_bindgen]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RenderParameters {
+  color: [f32; 4]
+}
+
+#[wasm_bindgen]
 pub struct Render {
   noise: FastNoise,
   surface: WebSysWebGL2Surface,
   sphere: Vec<luminance::tess::Tess<Backend, ObjVertex, u32>>,
   program: Program<VertexSemantics, (), ShaderInterface>,
+  parameters: RenderParameters,
 }
 
 #[wasm_bindgen]
 impl Render {
+  pub fn parameters(&self) -> String {
+    serde_json::to_string(&self.parameters).unwrap()
+  }
+
   pub fn new(canvas_name: &str) -> Render {
     console_error_panic_hook::set_once();
 
@@ -88,11 +100,20 @@ impl Render {
       .expect("failed to create program")
       .ignore_warnings();
 
-    Render { noise, surface, sphere, program }
+    let parameters = RenderParameters {
+      color: [1., 0., 0.5, 1.],
+    };
+
+    Render { noise, surface, sphere, program, parameters }
   }
 
-  pub fn frame(&mut self, elapsed: f32) {
-    let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
+  pub fn frame(&mut self, elapsed: f32, parameters: &str) {
+    let new_parameters: RenderParameters = serde_json::from_str(parameters).unwrap();
+    self.parameters = new_parameters;
+    log!("{:?}", self.parameters);
+
+    // let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
+    let color = self.parameters.color;
     let back_buffer = self.surface.back_buffer().expect("back buffer");
 
     let sphere = &self.sphere;
