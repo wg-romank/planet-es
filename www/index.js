@@ -40,13 +40,35 @@ const hex2rgba = (hex) => {
 }
 
 let ui = new UIL.Gui({w: 300});
-ui.add('title', { name:'Title'});
+ui.add('title', { name:'Гуга-Муга'});
 // ui.add('bool', { name:'Bool' })
-ui.add('color', { name:'Color', type:'rgba', value:[0,1,1,1]}).onChange(c => {
+ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange(c => {
   parameters.color = hex2rgba(c)
 });
 
+ui.add('slide', { name: 'Face resolution', value: parameters.face_resolution, min: 0, max: 128, precision: 0}).onChange(fr => {
+  parameters.face_resolution = fr
+})
 
+ui.add('slide', { name: 'Noise weight', value: parameters.noise_weight, min: 0, max: 1, step: 0.01}).onChange(nv => {
+  parameters.noise_weight = nv
+})
+
+ui.add('slide', { name: 'Frequency', value: parameters.frequency, min: 0, max: 10, step: 0.01}).onChange(f => {
+  parameters.frequency = f
+})
+
+ui.add('slide', {name: 'Octaves', value: parameters.octaves, min: 1, max: 8, step: 1}).onChange(o => {
+  parameters.octaves = o
+})
+
+ui.add('slide', { name: 'Lacunarity', value: parameters.lacunarity, min: 0, max: 10, step: 0.01}).onChange(l => {
+  parameters.lacunarity = l
+})
+
+ui.add('slide', { name: 'Gain', value: parameters.frequency, min: 0, max: 3, step: 0.01}).onChange(g => {
+  parameters.frequency = g
+})
 // const obj = {
 //   name:'welcome to uil',
 //   value: 2,

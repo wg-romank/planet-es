@@ -1,19 +1,19 @@
 use console_error_panic_hook;
 
-use luminance::UniformInterface;
-use luminance::shader::Uniform;
 use luminance::shader::types::{Mat44, Vec4};
+use luminance::shader::Uniform;
+use luminance::UniformInterface;
 use luminance_web_sys::WebSysWebGL2Surface;
 
-use luminance::render_state::RenderState;
 use luminance::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
+use luminance::render_state::RenderState;
 
 use luminance_front::shader::Program;
-use luminance_front::tess::{Tess, Mode, TessError, Interleaved};
+use luminance_front::tess::{Interleaved, Mode, Tess, TessError};
 use luminance_front::Backend;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 const VS_STR: &str = include_str!("../shaders/vs.glsl");
@@ -39,15 +39,13 @@ struct ObjVertex {
 
 type VertexIndex = u32;
 
-
 #[derive(Debug, UniformInterface)]
 struct ShaderInterface {
   // #[uniform(unbound)]
   // projection: Uniform<Mat44<f32>>,
   // #[uniform(unbound)]
   // view: Uniform<Mat44<f32>>
-
-  #[uniform(name ="rotation", unbound)]
+  #[uniform(name = "rotation", unbound)]
   rotation: Uniform<Mat44<f32>>,
 
   #[uniform(name = "normalMatrix", unbound)]
@@ -66,14 +64,41 @@ macro_rules! log {
 use bracket_noise::prelude::FastNoise;
 
 #[wasm_bindgen]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct RenderParameters {
-  color: [f32; 4]
+  color: [f32; 4],
+  face_resolution: usize,
+  noise_weight: f32,
+  // noise params
+  frequency: f32,
+  octaves: u8,
+  lacunarity: f32,
+  gain: f32,
+}
+
+fn mk_sphere(
+  surface: &mut WebSysWebGL2Surface,
+  parameters: &RenderParameters,
+) -> Vec<luminance::tess::Tess<Backend, ObjVertex, u32>> {
+  let mut noise = FastNoise::new();
+
+  noise.set_frequency(parameters.frequency);
+  noise.set_fractal_octaves(parameters.octaves as i32);
+  noise.set_fractal_lacunarity(parameters.lacunarity);
+  noise.set_fractal_gain(parameters.gain);
+
+  DIRECTIONS
+    .iter()
+    .map(|dir| {
+      Face::new(dir, parameters.face_resolution, &noise, parameters.noise_weight)
+        .to_tess(surface)
+        .expect("failed to create sphere")
+    })
+    .collect()
 }
 
 #[wasm_bindgen]
 pub struct Render {
-  noise: FastNoise,
   surface: WebSysWebGL2Surface,
   sphere: Vec<luminance::tess::Tess<Backend, ObjVertex, u32>>,
   program: Program<VertexSemantics, (), ShaderInterface>,
@@ -89,10 +114,17 @@ impl Render {
   pub fn new(canvas_name: &str) -> Render {
     console_error_panic_hook::set_once();
 
-    let mut noise = FastNoise::new();
+    let parameters = RenderParameters {
+      color: [1., 0., 0.5, 1.],
+      face_resolution: 32,
+      noise_weight: 0.1,
+      frequency: 1.0,
+      octaves: 3,
+      lacunarity: 2.0,
+      gain: 0.5,
+    };
 
     let mut surface = WebSysWebGL2Surface::new(canvas_name).expect("failed to create surface");
-    let sphere = DIRECTIONS.iter().map(|dir| Face::new(dir, 32, &noise).to_tess(&mut surface).expect("failed to create sphere")).collect();
 
     let program = surface
       .new_shader_program::<VertexSemantics, (), ShaderInterface>()
@@ -100,17 +132,27 @@ impl Render {
       .expect("failed to create program")
       .ignore_warnings();
 
-    let parameters = RenderParameters {
-      color: [1., 0., 0.5, 1.],
-    };
+    let sphere = mk_sphere(&mut surface, &parameters);
 
-    Render { noise, surface, sphere, program, parameters }
+    Render {
+      surface,
+      sphere,
+      program,
+      parameters,
+    }
+  }
+
+  pub fn update_parameters(&mut self, new_parameters: RenderParameters) {
+    if self.parameters != new_parameters {
+      self.parameters = new_parameters;
+      log!("{:?}", self.parameters);
+      self.sphere = mk_sphere(&mut self.surface, &self.parameters);
+    }
   }
 
   pub fn frame(&mut self, elapsed: f32, parameters: &str) {
     let new_parameters: RenderParameters = serde_json::from_str(parameters).unwrap();
-    self.parameters = new_parameters;
-    log!("{:?}", self.parameters);
+    self.update_parameters(new_parameters);
 
     // let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
     let color = self.parameters.color;
@@ -140,7 +182,10 @@ impl Render {
               iface.set(&uni.normal_matrix, normal_matrix.into_row_arrays().into());
               iface.set(&uni.color, color.into());
 
-              sphere.iter().map(|f| tess_gate.render(f)).collect::<Result<(), _>>()
+              sphere
+                .iter()
+                .map(|f| tess_gate.render(f))
+                .collect::<Result<(), _>>()
             })
           })
         },
@@ -157,12 +202,12 @@ impl Render {
 use vek::Vec3;
 
 const DIRECTIONS: [Vec3<f32>; 6] = [
-  Vec3::new( 1.,  0.,  0.),
-  Vec3::new( 0.,  1.,  0.),
-  Vec3::new( 0.,  0.,  1.),
-  Vec3::new(-1.,  0.,  0.),
-  Vec3::new( 0., -1.,  0.),
-  Vec3::new( 0.,  0., -1.),
+  Vec3::new(1., 0., 0.),
+  Vec3::new(0., 1., 0.),
+  Vec3::new(0., 0., 1.),
+  Vec3::new(-1., 0., 0.),
+  Vec3::new(0., -1., 0.),
+  Vec3::new(0., 0., -1.),
 ];
 
 #[derive(Debug)]
@@ -177,7 +222,8 @@ impl Face {
     ctxt: &mut C,
   ) -> Result<Tess<ObjVertex, VertexIndex, (), Interleaved>, TessError>
   where
-    C: GraphicsContext<Backend = Backend> {
+    C: GraphicsContext<Backend = Backend>,
+  {
     ctxt
       .new_tess()
       .set_mode(Mode::Triangle)
@@ -186,7 +232,7 @@ impl Face {
       .build()
   }
 
-  fn new(dir: &Vec3<f32>, res: usize, noise: &FastNoise) -> Face {
+  fn new(dir: &Vec3<f32>, res: usize, noise: &FastNoise, noise_weight: f32) -> Face {
     let mut vertices = Vec::<ObjVertex>::new();
     let mut indices = Vec::<VertexIndex>::new();
 
@@ -203,16 +249,14 @@ impl Face {
         vertex.normalize();
 
         let n = noise.get_noise3d(vertex.x, vertex.y, vertex.z);
-        vertex = vertex * 0.9 + vertex * 0.1 * n;
+        vertex = vertex * (1. - noise_weight) + vertex * noise_weight * n;
 
         let pos: [f32; 3] = [vertex.x, vertex.y, vertex.z];
 
-        vertices.push(
-          ObjVertex::new(
-            VertexPosition::new(pos),
-            VertexNormal::new(pos)
-          )
-        );
+        vertices.push(ObjVertex::new(
+          VertexPosition::new(pos),
+          VertexNormal::new(pos),
+        ));
 
         if x != res - 1 && y != res - 1 {
           indices.push(i);
