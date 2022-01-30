@@ -7,7 +7,16 @@ const brect = canvas.getBoundingClientRect();
 canvas.setAttribute('width', brect.width);
 canvas.setAttribute('height', brect.height);
 
-let r = fl.Render.new("florest-canvas");
+let r = null;
+let arr = window.location.href.split("?");
+if (arr.length > 1 && arr[1] != '') {
+  let raw = arr[1].split("=")[1];
+  let parameters_string = atob(raw)
+  r = fl.Render.from("florest-canvas", parameters_string);
+} else {
+  r = fl.Render.new("florest-canvas");
+}
+
 let parameters = JSON.parse(r.parameters());
 
 let lastCall = 0;
@@ -39,35 +48,48 @@ const hex2rgba = (hex) => {
   return [red, green, blue, 1.0];
 }
 
+const set_parameters = (p) => {
+  let url = new URL(window.location)
+  url.searchParams.set('p', btoa(JSON.stringify(p)))
+  window.history.pushState({}, '', url)
+}
+
 let ui = new UIL.Gui({w: 300});
 ui.add('title', { name:'Гуга-Муга'});
 // ui.add('bool', { name:'Bool' })
 ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange(c => {
   parameters.color = hex2rgba(c)
+  set_parameters(parameters)
 });
 
 ui.add('slide', { name: 'Face resolution', value: parameters.face_resolution, min: 0, max: 128, precision: 0}).onChange(fr => {
   parameters.face_resolution = fr
+  set_parameters(parameters)
 })
 
 ui.add('slide', { name: 'Noise weight', value: parameters.noise_weight, min: 0, max: 1, step: 0.01}).onChange(nv => {
   parameters.noise_weight = nv
+  set_parameters(parameters)
 })
 
 ui.add('slide', { name: 'Frequency', value: parameters.frequency, min: 0, max: 10, step: 0.01}).onChange(f => {
   parameters.frequency = f
+  set_parameters(parameters)
 })
 
 ui.add('slide', {name: 'Octaves', value: parameters.octaves, min: 1, max: 8, step: 1}).onChange(o => {
   parameters.octaves = o
+  set_parameters(parameters)
 })
 
 ui.add('slide', { name: 'Lacunarity', value: parameters.lacunarity, min: 0, max: 10, step: 0.01}).onChange(l => {
   parameters.lacunarity = l
+  set_parameters(parameters)
 })
 
 ui.add('slide', { name: 'Gain', value: parameters.frequency, min: 0, max: 3, step: 0.01}).onChange(g => {
   parameters.frequency = g
+  set_parameters(parameters)
 })
 // const obj = {
 //   name:'welcome to uil',

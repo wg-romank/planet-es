@@ -111,19 +111,8 @@ impl Render {
     serde_json::to_string(&self.parameters).unwrap()
   }
 
-  pub fn new(canvas_name: &str) -> Render {
+  pub fn from(canvas_name: &str, parameters: &str) -> Render {
     console_error_panic_hook::set_once();
-
-    let parameters = RenderParameters {
-      color: [1., 0., 0.5, 1.],
-      face_resolution: 32,
-      noise_weight: 0.1,
-      frequency: 1.0,
-      octaves: 3,
-      lacunarity: 2.0,
-      gain: 0.5,
-    };
-
     let mut surface = WebSysWebGL2Surface::new(canvas_name).expect("failed to create surface");
 
     let program = surface
@@ -131,6 +120,10 @@ impl Render {
       .from_strings(VS_STR, None, None, FS_STR)
       .expect("failed to create program")
       .ignore_warnings();
+
+    log!("parameters {}", parameters);
+
+    let parameters: RenderParameters = serde_json::from_str(parameters).unwrap();
 
     let sphere = mk_sphere(&mut surface, &parameters);
 
@@ -142,6 +135,20 @@ impl Render {
     }
   }
 
+  pub fn new(canvas_name: &str) -> Render {
+    let parameters = RenderParameters {
+      color: [1., 0., 0.5, 1.],
+      face_resolution: 32,
+      noise_weight: 0.1,
+      frequency: 1.0,
+      octaves: 3,
+      lacunarity: 2.0,
+      gain: 0.5,
+    };
+
+    Render::from(canvas_name, &serde_json::to_string(&parameters).unwrap())
+  }
+
   pub fn update_parameters(&mut self, new_parameters: RenderParameters) {
     if self.parameters != new_parameters {
       self.parameters = new_parameters;
@@ -151,6 +158,7 @@ impl Render {
   }
 
   pub fn frame(&mut self, elapsed: f32, parameters: &str) {
+    log!("parameters frame {}", parameters);
     let new_parameters: RenderParameters = serde_json::from_str(parameters).unwrap();
     self.update_parameters(new_parameters);
 
