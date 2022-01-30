@@ -69,33 +69,56 @@ pub struct RenderParameters {
   color: [f32; 4],
   face_resolution: usize,
   radius: f32,
-  filter: MeshFilterParameters,
+  filters: Vec<MeshFilterParameters>,
 }
 
 #[derive(Serialize, Deserialize, Debug,PartialEq)]
 pub struct MeshFilterParameters {
   strength: f32,
   roughness: f32,
+  min_value: f32,
   center: Vec3<f32>,
+  enabled: bool,
 }
 
 impl MeshFilterParameters {
   fn evaluate(&self, noise: &FastNoise, point: Vec3<f32>) -> f32 {
     let shifted = point * self.roughness + self.center;
 
-    ((noise.get_noise3d(
+    let noise = (noise.get_noise3d(
       shifted.x,
       shifted.y,
       shifted.z
-    ) + 1.) * 0.5) * self.strength
+    ) + 1.) * 0.5;
+
+    f32::max(0., noise - self.min_value) * self.strength
   }
+}
+
+#[wasm_bindgen]
+impl MeshFilterParameters {
+  pub fn generate() -> String {
+    serde_json::to_string(&MeshFilterParameters::default()).unwrap()
+  }
+}
+
+impl Default for MeshFilterParameters {
+    fn default() -> Self {
+      Self {
+          strength: 1.,
+          roughness: 0.5,
+          min_value: 0.,
+          center: Vec3::new(0., 0., 0.),
+          enabled: true,
+      }
+    }
 }
 
 fn mk_sphere(
   surface: &mut WebSysWebGL2Surface,
   parameters: &RenderParameters,
 ) -> Vec<luminance::tess::Tess<Backend, ObjVertex, u32>> {
-  let mut noise = FastNoise::new();
+  let noise = FastNoise::new();
 
   DIRECTIONS
     .iter()
@@ -150,11 +173,9 @@ impl Render {
       color: [1., 0., 0.5, 1.],
       face_resolution: 32,
       radius: 0.5,
-      filter: MeshFilterParameters {
-        strength: 1.,
-        roughness: 0.5,
-        center: Vec3::new(0., 0., 0.)
-      }
+      filters: vec![
+        MeshFilterParameters::default(),
+      ],
     };
 
     Render::from(canvas_name, &serde_json::to_string(&parameters).unwrap())
@@ -270,7 +291,14 @@ impl Face {
         vertex.normalize();
 
         // todo: extract function
-        vertex = vertex * parameters.radius * (1. + parameters.filter.evaluate(noise, vertex));
+        let mesh_offset = parameters.filters.iter().fold(0., |v, f| {
+          if f.enabled {
+            v + f.evaluate(noise, vertex)
+          } else {
+            v
+          }
+        });
+        vertex = vertex * parameters.radius * (1. + mesh_offset);
 
         let pos: [f32; 3] = [vertex.x, vertex.y, vertex.z];
 

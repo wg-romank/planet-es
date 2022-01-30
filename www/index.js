@@ -63,28 +63,48 @@ ui.add('slide', { name: 'Radius', value: parameters.radius, min: 0, max: 1, step
   parameters.radius = r
 })
 
-let filter = ui.add('group', { name: 'Filter'})
+const addFilter = (parent, filterParameters) => {
+  let filter = parent.add('group', { name: 'Filter'})
 
-filter.add('slide', {name: 'Strength', value: parameters.filter.strength, min: 0, max: 1, step: 0.01}).onChange(s => {
-  parameters.filter.strength = s
-})
+  filter.add('slide', {name: 'Strength', value: filterParameters.strength, min: 0, max: 1, step: 0.01}).onChange(s => {
+    filterParameters.strength = s
+  })
 
-filter.add('slide', {name: 'Roughness', value: parameters.filter.roughness, min: 0, max: 10, step: 0.01}).onChange(r => {
-  parameters.filter.roughness = r
-})
+  filter.add('slide', {name: 'Roughness', value: filterParameters.roughness, min: 0, max: 10, step: 0.01}).onChange(r => {
+    filterParameters.roughness = r
+  })
 
-let filter_center = filter.add('group', {name: 'Center'})
+  filter.add('slide', {name: 'Threshold', value: filterParameters.min_value, min: 0, max: 1, step: 0.01}).onChange(t => {
+    filterParameters.min_value = t
+  })
 
-filter_center.add('slide', {name: 'Center X', value: parameters.filter.center.x, min: -10, max: 10, step: 0.01}).onChange(x => {
-  parameters.filter.center.x = x
-})
+  let filter_center = filter.add('group', {name: 'Center'})
 
-filter_center.add('slide', {name: 'Center Y', value: parameters.filter.center.y, min: -10, max: 10, step: 0.01}).onChange(y => {
-  parameters.filter.center.y = y
-})
+  filter_center.add('slide', {name: 'Center X', value: filterParameters.center.x, min: -10, max: 10, step: 0.01}).onChange(x => {
+    filterParameters.center.x = x
+  })
 
-filter_center.add('slide', {name: 'Center Z', value: parameters.filter.center.z, min: -10, max: 10, step: 0.01}).onChange(z => {
-  parameters.filter.center.z = z
+  filter_center.add('slide', {name: 'Center Y', value: filterParameters.center.y, min: -10, max: 10, step: 0.01}).onChange(y => {
+    filterParameters.center.y = y
+  })
+
+  filter_center.add('slide', {name: 'Center Z', value: filterParameters.center.z, min: -10, max: 10, step: 0.01}).onChange(z => {
+    filterParameters.center.z = z
+  })
+
+  filter.add('bool', { name: 'Enabled', value: filterParameters.enabled }).onChange(en => {
+    filterParameters.enabled = en
+  })
+}
+
+let meshFilters = ui.add('group', {name: 'Mesh Filters'})
+
+parameters.filters.forEach(f => addFilter(meshFilters, f))
+
+ui.add('button', {name: 'Add Filter'}).onChange(() => {
+  let params = JSON.parse(fl.MeshFilterParameters.generate())
+  parameters.filters.push(params)
+  addFilter(meshFilters, params)
 })
 
 const set_parameters = (p) => {
