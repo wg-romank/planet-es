@@ -68,12 +68,27 @@ use bracket_noise::prelude::FastNoise;
 pub struct RenderParameters {
   color: [f32; 4],
   face_resolution: usize,
-  noise_weight: f32,
-  // noise params
-  frequency: f32,
-  octaves: u8,
-  lacunarity: f32,
-  gain: f32,
+  radius: f32,
+  filter: MeshFilterParameters,
+}
+
+#[derive(Serialize, Deserialize, Debug,PartialEq)]
+pub struct MeshFilterParameters {
+  strength: f32,
+  roughness: f32,
+  center: Vec3<f32>,
+}
+
+impl MeshFilterParameters {
+  fn evaluate(&self, noise: &FastNoise, point: Vec3<f32>) -> f32 {
+    let shifted = point * self.roughness + self.center;
+
+    ((noise.get_noise3d(
+      shifted.x,
+      shifted.y,
+      shifted.z
+    ) + 1.) * 0.5) * self.strength
+  }
 }
 
 fn mk_sphere(
@@ -82,15 +97,10 @@ fn mk_sphere(
 ) -> Vec<luminance::tess::Tess<Backend, ObjVertex, u32>> {
   let mut noise = FastNoise::new();
 
-  noise.set_frequency(parameters.frequency);
-  noise.set_fractal_octaves(parameters.octaves as i32);
-  noise.set_fractal_lacunarity(parameters.lacunarity);
-  noise.set_fractal_gain(parameters.gain);
-
   DIRECTIONS
     .iter()
     .map(|dir| {
-      Face::new(dir, parameters.face_resolution, &noise, parameters.noise_weight)
+      Face::new(dir, parameters, &noise)
         .to_tess(surface)
         .expect("failed to create sphere")
     })
@@ -139,11 +149,12 @@ impl Render {
     let parameters = RenderParameters {
       color: [1., 0., 0.5, 1.],
       face_resolution: 32,
-      noise_weight: 0.1,
-      frequency: 1.0,
-      octaves: 3,
-      lacunarity: 2.0,
-      gain: 0.5,
+      radius: 0.5,
+      filter: MeshFilterParameters {
+        strength: 1.,
+        roughness: 0.5,
+        center: Vec3::new(0., 0., 0.)
+      }
     };
 
     Render::from(canvas_name, &serde_json::to_string(&parameters).unwrap())
@@ -240,12 +251,14 @@ impl Face {
       .build()
   }
 
-  fn new(dir: &Vec3<f32>, res: usize, noise: &FastNoise, noise_weight: f32) -> Face {
+  fn new(dir: &Vec3<f32>, parameters: &RenderParameters, noise: &FastNoise) -> Face {
     let mut vertices = Vec::<ObjVertex>::new();
     let mut indices = Vec::<VertexIndex>::new();
 
     let axis_a = Vec3::new(dir.y, dir.z, dir.x);
     let axis_b = dir.cross(axis_a);
+
+    let res = parameters.face_resolution;
 
     for y in 0..res {
       for x in 0..res {
@@ -256,8 +269,8 @@ impl Face {
         let mut vertex = dir + (scale_x * 2. - 1.) * axis_a + (scale_y * 2. - 1.) * axis_b;
         vertex.normalize();
 
-        let n = noise.get_noise3d(vertex.x, vertex.y, vertex.z);
-        vertex = vertex * (1. - noise_weight) + vertex * noise_weight * n;
+        // todo: extract function
+        vertex = vertex * parameters.radius * (1. + parameters.filter.evaluate(noise, vertex));
 
         let pos: [f32; 3] = [vertex.x, vertex.y, vertex.z];
 

@@ -48,57 +48,49 @@ const hex2rgba = (hex) => {
   return [red, green, blue, 1.0];
 }
 
+let ui = new UIL.Gui({w: 300});
+ui.add('title', { name:'Гуга-Муга'});
+
+ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange(c => {
+  parameters.color = hex2rgba(c)
+});
+
+ui.add('slide', { name: 'Face resolution', value: parameters.face_resolution, min: 0, max: 128, precision: 0}).onChange(fr => {
+  parameters.face_resolution = fr
+})
+
+ui.add('slide', { name: 'Radius', value: parameters.radius, min: 0, max: 1, step: 0.01}).onChange(r => {
+  parameters.radius = r
+})
+
+let filter = ui.add('group', { name: 'Filter'})
+
+filter.add('slide', {name: 'Strength', value: parameters.filter.strength, min: 0, max: 1, step: 0.01}).onChange(s => {
+  parameters.filter.strength = s
+})
+
+filter.add('slide', {name: 'Roughness', value: parameters.filter.roughness, min: 0, max: 10, step: 0.01}).onChange(r => {
+  parameters.filter.roughness = r
+})
+
+let filter_center = filter.add('group', {name: 'Center'})
+
+filter_center.add('slide', {name: 'Center X', value: parameters.filter.center.x, min: -10, max: 10, step: 0.01}).onChange(x => {
+  parameters.filter.center.x = x
+})
+
+filter_center.add('slide', {name: 'Center Y', value: parameters.filter.center.y, min: -10, max: 10, step: 0.01}).onChange(y => {
+  parameters.filter.center.y = y
+})
+
+filter_center.add('slide', {name: 'Center Z', value: parameters.filter.center.z, min: -10, max: 10, step: 0.01}).onChange(z => {
+  parameters.filter.center.z = z
+})
+
 const set_parameters = (p) => {
   let url = new URL(window.location)
   url.searchParams.set('p', btoa(JSON.stringify(p)))
   window.history.pushState({}, '', url)
 }
 
-let ui = new UIL.Gui({w: 300});
-ui.add('title', { name:'Гуга-Муга'});
-// ui.add('bool', { name:'Bool' })
-ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange(c => {
-  parameters.color = hex2rgba(c)
-  set_parameters(parameters)
-});
-
-ui.add('slide', { name: 'Face resolution', value: parameters.face_resolution, min: 0, max: 128, precision: 0}).onChange(fr => {
-  parameters.face_resolution = fr
-  set_parameters(parameters)
-})
-
-ui.add('slide', { name: 'Noise weight', value: parameters.noise_weight, min: 0, max: 1, step: 0.01}).onChange(nv => {
-  parameters.noise_weight = nv
-  set_parameters(parameters)
-})
-
-ui.add('slide', { name: 'Frequency', value: parameters.frequency, min: 0, max: 10, step: 0.01}).onChange(f => {
-  parameters.frequency = f
-  set_parameters(parameters)
-})
-
-ui.add('slide', {name: 'Octaves', value: parameters.octaves, min: 1, max: 8, step: 1}).onChange(o => {
-  parameters.octaves = o
-  set_parameters(parameters)
-})
-
-ui.add('slide', { name: 'Lacunarity', value: parameters.lacunarity, min: 0, max: 10, step: 0.01}).onChange(l => {
-  parameters.lacunarity = l
-  set_parameters(parameters)
-})
-
-ui.add('slide', { name: 'Gain', value: parameters.frequency, min: 0, max: 3, step: 0.01}).onChange(g => {
-  parameters.frequency = g
-  set_parameters(parameters)
-})
-// const obj = {
-//   name:'welcome to uil',
-//   value: 2,
-//   slider: 30,
-//   vector: { x:10, y:-30 }
-// };
-  
-// ui.add( obj, 'string', { type:'string' });
-// ui.add( obj, 'value', { type:'number', min:0, max:10, precision:2, step:0.01 });
-// ui.add( obj, 'slider', { type:'slide' });
-// ui.add( obj, 'vector', { type:'number' });
+ui.add('button', {name: 'Save & Share'}).onChange(() => set_parameters(parameters))
