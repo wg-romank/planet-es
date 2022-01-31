@@ -58,6 +58,12 @@ struct ShaderInterface {
 
   #[uniform(name = "lightPosition", unbound)]
   light_position: Uniform<Vec3<f32>>,
+
+  #[uniform(name = "projection", unbound)]
+  projection: Uniform<Mat44<f32>>,
+
+  #[uniform(unbound)]
+  view: Uniform<Mat44<f32>>,
 }
 
 macro_rules! log {
@@ -67,7 +73,7 @@ macro_rules! log {
 }
 
 use bracket_noise::prelude::FastNoise;
-use vek::Vec3 as Vek3;
+use vek::{Vec3 as Vek3, Mat4};
 
 #[wasm_bindgen]
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -180,7 +186,7 @@ impl Render {
       light_position: Vek3::new(-0.85, -0.8, -0.75),
       color: [1., 0., 0.5, 1.],
       face_resolution: 32,
-      radius: 0.5,
+      radius: 0.2,
       filters: vec![
         MeshFilterParameters::default(),
       ],
@@ -210,6 +216,16 @@ impl Render {
     let program = &mut self.program;
     let ctxt = &mut self.surface;
 
+    // let projection = Mat4::perspective_fov_rh_no(
+    //   std::f32::consts::FRAC_PI_2,
+    //   400.,
+    //   400.,
+    //   -10.,
+    //   10.,
+    // );
+
+    let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
+
     let mut rotation = vek::mat4::Mat4::identity();
     rotation.rotate_y(elapsed);
     rotation.rotate_x(elapsed / 2.);
@@ -236,6 +252,9 @@ impl Render {
               iface.set(&uni.normal_matrix, normal_matrix.into_row_arrays().into());
               iface.set(&uni.color, color.into());
               iface.set(&uni.light_position, light_position.into_array().into());
+
+              iface.set(&uni.view, view.into_row_arrays().into());
+              // iface.set(&uni.projection, projection.into_row_arrays().into());
 
               sphere
                 .iter()
@@ -296,7 +315,6 @@ impl Face {
 
     for y in 0..res {
       for x in 0..res {
-        let i = (x + y * res) as u32;
         let scale_x = x as f32 / (res as f32 - 1.);
         let scale_y = y as f32 / (res as f32 - 1.);
 
@@ -321,6 +339,7 @@ impl Face {
         ));
 
         if x != res - 1 && y != res - 1 {
+          let i = (x + y * res) as u32;
           indices.push(i);
           indices.push(i + res as u32 + 1);
           indices.push(i + res as u32);

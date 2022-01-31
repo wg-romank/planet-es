@@ -1,13 +1,13 @@
-// this was the vertex shader output; it’s now our (rasterized and interpolated) input!
-in vec3 vLighting;
-in vec4 vColor;
+in vec3 v_norm;
+in vec4 v_color;
 
-// we will output a single color
+uniform mat4 normalMatrix;
+uniform vec3 lightPosition;
+
 out vec4 frag_color;
 
 void main() {
-  // KISS
-  // frag_color = vec4(v_color, 1.0);
-  // frag_color = vec4(1.0, 0.4, 0.7, 1.0);
-  frag_color = vec4(vLighting, 1) * vColor;
+  float kd = dot((normalMatrix * vec4(v_norm, 0.)).xyz, -normalize(lightPosition)) + .3;
+
+  frag_color = v_color * kd;
 }
