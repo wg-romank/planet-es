@@ -95,9 +95,11 @@ const addFilter = (parent, filterParameters) => {
   filter.add('bool', { name: 'Enabled', value: filterParameters.enabled }).onChange(en => {
     filterParameters.enabled = en
   })
+
+  parent.open()
 }
 
-let meshFilters = ui.add('group', {name: 'Mesh Filters'})
+let meshFilters = ui.add('group', {name: 'Mesh Filters'});
 
 parameters.filters.forEach(f => addFilter(meshFilters, f))
 
