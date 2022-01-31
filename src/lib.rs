@@ -82,10 +82,10 @@ pub struct RenderParameters {
   color: [f32; 4],
   face_resolution: usize,
   radius: f32,
-  filters: Vec<MeshFilterParameters>,
+  mesh_parameters: MeshParameters,
 }
 
-#[derive(Serialize, Deserialize, Debug,PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct MeshFilterParameters {
   strength: f32,
   roughness: f32,
@@ -125,6 +125,41 @@ impl Default for MeshFilterParameters {
           enabled: true,
       }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct MeshParameters {
+  frequency: f32,
+  use_first_layer_as_mask: bool,
+  filters: Vec<MeshFilterParameters>
+}
+
+impl MeshParameters {
+  fn new() -> MeshParameters {
+    MeshParameters {
+      frequency: 0.5,
+      use_first_layer_as_mask: false,
+      filters: vec![
+        MeshFilterParameters::default(),
+      ],
+    }
+  }
+
+  fn evaluate(&self, noise: &FastNoise, point: Vek3<f32>) -> f32 {
+    if let Some(first) = self.filters.first() {
+      let first_value = first.evaluate(noise, point);
+
+      if first_value > 0. && self.use_first_layer_as_mask || !self.use_first_layer_as_mask {
+        self.filters[1..].iter().fold((first_value, self.frequency), |(v, m), f| {
+          if f.enabled {
+            (v + m * f.evaluate(noise, point), m * self.frequency)
+          } else {
+            (v, m * self.frequency)
+          }
+        }).0
+      } else { first_value }
+    } else { 0. }
+  }
 }
 
 fn mk_sphere(
@@ -187,9 +222,7 @@ impl Render {
       color: [1., 0., 0.5, 1.],
       face_resolution: 32,
       radius: 0.2,
-      filters: vec![
-        MeshFilterParameters::default(),
-      ],
+      mesh_parameters: MeshParameters::new(),
     };
 
     Render::from(canvas_name, &serde_json::to_string(&parameters).unwrap())
@@ -318,18 +351,10 @@ impl Face {
         let scale_x = x as f32 / (res as f32 - 1.);
         let scale_y = y as f32 / (res as f32 - 1.);
 
-        let mut vertex = dir + (scale_x * 2. - 1.) * axis_a + (scale_y * 2. - 1.) * axis_b;
-        vertex.normalize();
+        let poin_on_unit_sphere = (dir + (scale_x * 2. - 1.) * axis_a + (scale_y * 2. - 1.) * axis_b).normalized();
 
-        // todo: extract function
-        let mesh_offset = parameters.filters.iter().fold(0., |v, f| {
-          if f.enabled {
-            v + f.evaluate(noise, vertex)
-          } else {
-            v
-          }
-        });
-        vertex = vertex * parameters.radius * (1. + mesh_offset);
+        let mesh_offset = parameters.mesh_parameters.evaluate(noise, poin_on_unit_sphere);
+        let vertex = poin_on_unit_sphere * parameters.radius * (1. + mesh_offset);
 
         let pos: [f32; 3] = [vertex.x, vertex.y, vertex.z];
 

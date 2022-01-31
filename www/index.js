@@ -116,11 +116,19 @@ const addFilter = (parent, filterParameters) => {
 
 let meshFilters = ui.add('group', {name: 'Mesh Filters'});
 
-parameters.filters.forEach(f => addFilter(meshFilters, f))
+meshFilters.add('bool', { name: 'Use first layer as a mask', value: parameters.mesh_parameters.use_first_layer_as_mask}).onChange(m => {
+  parameters.mesh_parameters.use_first_layer_as_mask = m
+})
+
+meshFilters.add('slide', { name: 'Frequency', value: parameters.mesh_parameters.frequency, min: 0., max: 1., step: 0.01}).onChange(f => {
+  parameters.mesh_parameters.frequency = f
+})
+
+parameters.mesh_parameters.filters.forEach(f => addFilter(meshFilters, f))
 
 ui.add('button', {name: 'Add Filter'}).onChange(() => {
   let params = JSON.parse(fl.MeshFilterParameters.generate())
-  parameters.filters.push(params)
+  parameters.mesh_parameters.filters.push(params)
   addFilter(meshFilters, params)
 })
 
