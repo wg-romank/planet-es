@@ -51,6 +51,21 @@ const hex2rgba = (hex) => {
 let ui = new UIL.Gui({w: 300});
 ui.add('title', { name:'Гуга-Муга'});
 
+let light = ui.add('group', { name: 'Light'})
+
+
+light.add('slide', {name: 'Center X', value: parameters.light_position.x, min: -10, max: 10, step: 0.01}).onChange(x => {
+  parameters.light_position.x = x
+})
+
+light.add('slide', {name: 'Center Y', value: parameters.light_position.y, min: -10, max: 10, step: 0.01}).onChange(y => {
+  parameters.light_position.y = y
+})
+
+light.add('slide', {name: 'Center Z', value: parameters.light_position.z, min: -10, max: 10, step: 0.01}).onChange(z => {
+  parameters.light_position.z = z
+})
+
 ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange(c => {
   parameters.color = hex2rgba(c)
 });

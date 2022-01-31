@@ -1,8 +1,10 @@
 use console_error_panic_hook;
 
-use luminance::shader::types::{Mat44, Vec4};
+use luminance::pixel::RGBA32F;
+use luminance::shader::types::{Mat44, Vec4, Vec3};
 use luminance::shader::Uniform;
 use luminance::UniformInterface;
+use luminance::texture::{Sampler, Dim2};
 use luminance_web_sys::WebSysWebGL2Surface;
 
 use luminance::context::GraphicsContext;
@@ -51,8 +53,11 @@ struct ShaderInterface {
   #[uniform(name = "normalMatrix", unbound)]
   normal_matrix: Uniform<Mat44<f32>>,
 
-  #[uniform(name = "color")]
+  #[uniform(name = "color", unbound)]
   color: Uniform<Vec4<f32>>,
+
+  #[uniform(name = "lightPosition", unbound)]
+  light_position: Uniform<Vec3<f32>>,
 }
 
 macro_rules! log {
@@ -62,10 +67,12 @@ macro_rules! log {
 }
 
 use bracket_noise::prelude::FastNoise;
+use vek::Vec3 as Vek3;
 
 #[wasm_bindgen]
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct RenderParameters {
+  light_position: Vek3<f32>,
   color: [f32; 4],
   face_resolution: usize,
   radius: f32,
@@ -77,12 +84,12 @@ pub struct MeshFilterParameters {
   strength: f32,
   roughness: f32,
   min_value: f32,
-  center: Vec3<f32>,
+  center: Vek3<f32>,
   enabled: bool,
 }
 
 impl MeshFilterParameters {
-  fn evaluate(&self, noise: &FastNoise, point: Vec3<f32>) -> f32 {
+  fn evaluate(&self, noise: &FastNoise, point: Vek3<f32>) -> f32 {
     let shifted = point * self.roughness + self.center;
 
     let noise = (noise.get_noise3d(
@@ -108,7 +115,7 @@ impl Default for MeshFilterParameters {
           strength: 1.,
           roughness: 0.5,
           min_value: 0.,
-          center: Vec3::new(0., 0., 0.),
+          center: Vek3::new(0., 0., 0.),
           enabled: true,
       }
     }
@@ -170,6 +177,7 @@ impl Render {
 
   pub fn new(canvas_name: &str) -> Render {
     let parameters = RenderParameters {
+      light_position: Vek3::new(-0.85, -0.8, -0.75),
       color: [1., 0., 0.5, 1.],
       face_resolution: 32,
       radius: 0.5,
@@ -196,7 +204,7 @@ impl Render {
 
     // let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
     let color = self.parameters.color;
-    let back_buffer = self.surface.back_buffer().expect("back buffer");
+    let light_position = self.parameters.light_position;
 
     let sphere = &self.sphere;
     let program = &mut self.program;
@@ -210,6 +218,12 @@ impl Render {
     normal_matrix.invert();
     normal_matrix.transpose();
 
+    // let shadow_map = ctxt.new_framebuffer::<Dim2, RGBA32F, ()>(
+    //   [400, 400], 0, Sampler::default()
+    // );
+
+    let back_buffer = ctxt.back_buffer().expect("back buffer");
+
     let render = ctxt
       .new_pipeline_gate()
       .pipeline(
@@ -221,6 +235,7 @@ impl Render {
               iface.set(&uni.rotation, rotation.into_row_arrays().into());
               iface.set(&uni.normal_matrix, normal_matrix.into_row_arrays().into());
               iface.set(&uni.color, color.into());
+              iface.set(&uni.light_position, light_position.into_array().into());
 
               sphere
                 .iter()
@@ -239,15 +254,13 @@ impl Render {
   }
 }
 
-use vek::Vec3;
-
-const DIRECTIONS: [Vec3<f32>; 6] = [
-  Vec3::new(1., 0., 0.),
-  Vec3::new(0., 1., 0.),
-  Vec3::new(0., 0., 1.),
-  Vec3::new(-1., 0., 0.),
-  Vec3::new(0., -1., 0.),
-  Vec3::new(0., 0., -1.),
+const DIRECTIONS: [Vek3<f32>; 6] = [
+  Vek3::new(1., 0., 0.),
+  Vek3::new(0., 1., 0.),
+  Vek3::new(0., 0., 1.),
+  Vek3::new(-1., 0., 0.),
+  Vek3::new(0., -1., 0.),
+  Vek3::new(0., 0., -1.),
 ];
 
 #[derive(Debug)]
@@ -272,11 +285,11 @@ impl Face {
       .build()
   }
 
-  fn new(dir: &Vec3<f32>, parameters: &RenderParameters, noise: &FastNoise) -> Face {
+  fn new(dir: &Vek3<f32>, parameters: &RenderParameters, noise: &FastNoise) -> Face {
     let mut vertices = Vec::<ObjVertex>::new();
     let mut indices = Vec::<VertexIndex>::new();
 
-    let axis_a = Vec3::new(dir.y, dir.z, dir.x);
+    let axis_a = Vek3::new(dir.y, dir.z, dir.x);
     let axis_b = dir.cross(axis_a);
 
     let res = parameters.face_resolution;
