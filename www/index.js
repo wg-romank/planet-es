@@ -111,6 +111,11 @@ const addFilter = (parent, filterParameters) => {
     filterParameters.enabled = en
   })
 
+  filter.add('button', { name: 'Remove'}).onChange(_ => {
+    parameters.mesh_parameters.filters = parameters.mesh_parameters.filters.filter(f => f != filterParameters)
+    meshFilters.remove(filter)
+  })
+
   parent.open()
 }
 

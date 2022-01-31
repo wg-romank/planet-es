@@ -147,7 +147,7 @@ impl MeshParameters {
 
   fn evaluate(&self, noise: &FastNoise, point: Vek3<f32>) -> f32 {
     if let Some(first) = self.filters.first() {
-      let first_value = first.evaluate(noise, point);
+      let first_value = if first.enabled { first.evaluate(noise, point) } else { 0.0 };
 
       if first_value > 0. && self.use_first_layer_as_mask || !self.use_first_layer_as_mask {
         self.filters[1..].iter().fold((first_value, self.frequency), |(v, m), f| {
