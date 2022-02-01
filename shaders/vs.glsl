@@ -16,5 +16,5 @@ void main() {
   v_color = color;
   v_norm = norm;
 
-  gl_Position = view * vertex_position;
+  gl_Position = projection * view * vertex_position;
 }

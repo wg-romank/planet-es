@@ -221,7 +221,7 @@ impl Render {
       light_position: Vek3::new(-0.85, -0.8, -0.75),
       color: [1., 0., 0.5, 1.],
       face_resolution: 32,
-      radius: 0.2,
+      radius: 0.5,
       mesh_parameters: MeshParameters::new(),
     };
 
@@ -249,13 +249,13 @@ impl Render {
     let program = &mut self.program;
     let ctxt = &mut self.surface;
 
-    // let projection = Mat4::perspective_fov_rh_no(
-    //   std::f32::consts::FRAC_PI_2,
-    //   400.,
-    //   400.,
-    //   -10.,
-    //   10.,
-    // );
+    let projection = Mat4::perspective_fov_rh_no(
+      std::f32::consts::FRAC_PI_2,
+      400.,
+      400.,
+      0.1,
+      10.,
+    );
 
     let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
 
@@ -281,13 +281,13 @@ impl Render {
         |_, mut shd_gate| {
           shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-              iface.set(&uni.rotation, rotation.into_row_arrays().into());
-              iface.set(&uni.normal_matrix, normal_matrix.into_row_arrays().into());
+              iface.set(&uni.rotation, rotation.into_col_arrays().into());
+              iface.set(&uni.normal_matrix, normal_matrix.into_col_arrays().into());
               iface.set(&uni.color, color.into());
               iface.set(&uni.light_position, light_position.into_array().into());
 
-              iface.set(&uni.view, view.into_row_arrays().into());
-              // iface.set(&uni.projection, projection.into_row_arrays().into());
+              iface.set(&uni.view, view.into_col_arrays().into());
+              iface.set(&uni.projection, projection.into_col_arrays().into());
 
               sphere
                 .iter()
