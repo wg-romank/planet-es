@@ -51,6 +51,10 @@ const hex2rgba = (hex) => {
 let ui = new UIL.Gui({w: 300});
 ui.add('title', { name:'Гуга-Муга'});
 
+ui.add('slide', { name: 'FOV', value: parameters.fov, min: 45, max: 180, step: 1}).onChange(fov => {
+  parameters.fov = fov
+})
+
 let light = ui.add('group', { name: 'Light'})
 
 

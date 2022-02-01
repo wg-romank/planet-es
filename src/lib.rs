@@ -78,6 +78,7 @@ use vek::{Vec3 as Vek3, Mat4};
 #[wasm_bindgen]
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct RenderParameters {
+  fov: f32,
   light_position: Vek3<f32>,
   color: [f32; 4],
   face_resolution: usize,
@@ -218,6 +219,7 @@ impl Render {
 
   pub fn new(canvas_name: &str) -> Render {
     let parameters = RenderParameters {
+      fov: 90.,
       light_position: Vek3::new(-0.85, -0.8, -0.75),
       color: [1., 0., 0.5, 1.],
       face_resolution: 32,
@@ -250,7 +252,7 @@ impl Render {
     let ctxt = &mut self.surface;
 
     let projection = Mat4::perspective_fov_rh_no(
-      std::f32::consts::FRAC_PI_2,
+      self.parameters.fov / 180. * std::f32::consts::PI,
       400.,
       400.,
       0.1,
