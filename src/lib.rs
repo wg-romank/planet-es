@@ -261,13 +261,11 @@ impl Render {
 
     let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
 
-    let mut rotation = vek::mat4::Mat4::identity();
-    rotation.rotate_y(elapsed);
-    rotation.rotate_x(elapsed / 2.);
+    let rotation = vek::mat4::Mat4::identity()
+      .rotated_y(elapsed)
+      .rotated_x(elapsed / 2.);
 
-    let mut normal_matrix = rotation.clone();
-    normal_matrix.invert();
-    normal_matrix.transpose();
+    let normal_matrix = rotation.clone().inverted().transposed();
 
     // let shadow_map = ctxt.new_framebuffer::<Dim2, RGBA32F, ()>(
     //   [400, 400], 0, Sampler::default()
