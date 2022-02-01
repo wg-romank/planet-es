@@ -7,7 +7,8 @@ uniform vec3 lightPosition;
 out vec4 frag_color;
 
 void main() {
-  float kd = dot((normalMatrix * vec4(v_norm, 0.)).xyz, -normalize(lightPosition)) + .3;
+  vec3 norm_transformed = (normalMatrix * vec4(v_norm, 0.)).xyz;
+  float kd = dot((norm_transformed, -normalize(lightPosition)) + .3;
 
   frag_color = v_color * kd;
 }
