@@ -1,14 +1,15 @@
 use console_error_panic_hook;
 
-use luminance::pixel::RGBA32F;
+use luminance::framebuffer::Framebuffer;
+use luminance::pixel::{Depth32F, RGBA32F, R8UI, NormUnsigned, Floating};
 use luminance::shader::types::{Mat44, Vec4, Vec3};
 use luminance::shader::Uniform;
-use luminance::UniformInterface;
+use luminance::{UniformInterface, backend};
 use luminance::texture::{Sampler, Dim2};
 use luminance_web_sys::WebSysWebGL2Surface;
 
 use luminance::context::GraphicsContext;
-use luminance::pipeline::PipelineState;
+use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::render_state::RenderState;
 
 use luminance_front::shader::Program;
@@ -20,6 +21,9 @@ use wasm_bindgen::prelude::*;
 
 const VS_STR: &str = include_str!("../shaders/vs.glsl");
 const FS_STR: &str = include_str!("../shaders/fs.glsl");
+
+const SHADOW_VS_STR: &str = include_str!("../shaders/shadow_vs.glsl");
+const SHADOW_FS_STR: &str = include_str!("../shaders/shadow_fs.glsl");
 
 use luminance_derive::{Semantics, Vertex};
 
@@ -43,10 +47,6 @@ type VertexIndex = u32;
 
 #[derive(Debug, UniformInterface)]
 struct ShaderInterface {
-  // #[uniform(unbound)]
-  // projection: Uniform<Mat44<f32>>,
-  // #[uniform(unbound)]
-  // view: Uniform<Mat44<f32>>
   #[uniform(name = "rotation", unbound)]
   rotation: Uniform<Mat44<f32>>,
 
@@ -64,6 +64,24 @@ struct ShaderInterface {
 
   #[uniform(unbound)]
   view: Uniform<Mat44<f32>>,
+
+  #[uniform(unbound)]
+  light_view: Uniform<Mat44<f32>>,
+
+  #[uniform(unbound)]
+  shadow_map: Uniform<TextureBinding<Dim2, Floating>>,
+}
+
+#[derive(Debug, UniformInterface)]
+struct ShadowShaderInterface {
+  #[uniform(name = "rotation", unbound)]
+  rotation: Uniform<Mat44<f32>>,
+
+  #[uniform(name = "projection", unbound)]
+  projection: Uniform<Mat44<f32>>,
+
+  #[uniform(unbound)]
+  light_view: Uniform<Mat44<f32>>,
 }
 
 macro_rules! log {
@@ -184,6 +202,8 @@ pub struct Render {
   surface: WebSysWebGL2Surface,
   sphere: Vec<luminance::tess::Tess<Backend, ObjVertex, u32>>,
   program: Program<VertexSemantics, (), ShaderInterface>,
+  shadow_program: Program<VertexSemantics, (), ShadowShaderInterface>,
+  shadow_fb: Framebuffer<Backend, Dim2, R8UI, Depth32F>,
   parameters: RenderParameters,
 }
 
@@ -203,7 +223,17 @@ impl Render {
       .expect("failed to create program")
       .ignore_warnings();
 
+    let shadow_program = surface
+      .new_shader_program::<VertexSemantics, (), ShadowShaderInterface>()
+      .from_strings(SHADOW_VS_STR, None, None, SHADOW_FS_STR)
+      .expect("failed to create shadow program")
+      .ignore_warnings();
+
     log!("parameters {}", parameters);
+
+    let shadow_fb = surface.new_framebuffer::<Dim2, R8UI, Depth32F>(
+      [400, 400], 0, Sampler::default()
+    ).expect("unable to create shadow framebuffer");
 
     let parameters: RenderParameters = serde_json::from_str(parameters).unwrap();
 
@@ -213,6 +243,8 @@ impl Render {
       surface,
       sphere,
       program,
+      shadow_program,
+      shadow_fb,
       parameters,
     }
   }
@@ -239,7 +271,7 @@ impl Render {
   }
 
   pub fn frame(&mut self, elapsed: f32, parameters: &str) {
-    log!("parameters frame {}", parameters);
+    // log!("parameters frame {}", parameters);
     let new_parameters: RenderParameters = serde_json::from_str(parameters).unwrap();
     self.update_parameters(new_parameters);
 
@@ -249,6 +281,7 @@ impl Render {
 
     let sphere = &self.sphere;
     let program = &mut self.program;
+    let shadow_program = &mut self.shadow_program;
     let ctxt = &mut self.surface;
 
     let projection = Mat4::perspective_fov_rh_no(
@@ -259,17 +292,40 @@ impl Render {
       10.,
     );
 
-    let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
-
+    let light_view: Mat4<f32> = Mat4::look_at_rh(light_position, Vek3::zero(), Vek3::unit_y());
     let rotation = vek::mat4::Mat4::identity()
       .rotated_y(elapsed)
       .rotated_x(elapsed / 2.);
 
-    let normal_matrix = rotation.clone().inverted().transposed();
+    let shadow_map = &mut self.shadow_fb;
 
-    // let shadow_map = ctxt.new_framebuffer::<Dim2, RGBA32F, ()>(
-    //   [400, 400], 0, Sampler::default()
-    // );
+    let shadow_render = ctxt
+      .new_pipeline_gate()
+      .pipeline(
+        shadow_map,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          shd_gate.shade(shadow_program, |mut iface, uni, mut rdr_gate| {
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              iface.set(&uni.rotation, rotation.into_col_arrays().into());
+              iface.set(&uni.projection, projection.into_col_arrays().into());
+              iface.set(&uni.light_view, light_view.into_col_arrays().into());
+
+              sphere
+                .iter()
+                .map(|f| tess_gate.render(f))
+                .collect::<Result<(), _>>()
+            })
+          })
+        }
+      ).assume();
+
+    if !shadow_render.is_ok() {
+      log!("error shadow rendering {:?}", shadow_render.into_result());
+    }
+
+    let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
+    let normal_matrix = rotation.clone().inverted().transposed();
 
     let back_buffer = ctxt.back_buffer().expect("back buffer");
 
@@ -278,7 +334,11 @@ impl Render {
       .pipeline(
         &back_buffer,
         &PipelineState::default(), //.set_clear_color(color),
-        |_, mut shd_gate| {
+        |pipeline, mut shd_gate| {
+          let sh_m = pipeline
+            .bind_texture(shadow_map.depth_stencil_slot())
+            .expect("failed to bind depth texture");
+
           shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
               iface.set(&uni.rotation, rotation.into_col_arrays().into());
@@ -288,6 +348,9 @@ impl Render {
 
               iface.set(&uni.view, view.into_col_arrays().into());
               iface.set(&uni.projection, projection.into_col_arrays().into());
+
+              iface.set(&uni.light_view, light_view.into_col_arrays().into());
+              iface.set(&uni.shadow_map, sh_m.binding());
 
               sphere
                 .iter()
