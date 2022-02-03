@@ -12,9 +12,9 @@ let arr = window.location.href.split("?");
 if (arr.length > 1 && arr[1] != '') {
   let raw = arr[1].split("=")[1];
   let parameters_string = atob(raw)
-  r = fl.Render.from("florest-canvas", parameters_string);
+  r = fl.WebApp.from("florest-canvas", parameters_string);
 } else {
-  r = fl.Render.new("florest-canvas");
+  r = fl.WebApp.new("florest-canvas");
 }
 
 let parameters = JSON.parse(r.parameters());
