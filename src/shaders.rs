@@ -1,20 +1,20 @@
 use luminance::context::GraphicsContext;
+use luminance::pipeline::{PipelineState, TextureBinding};
+use luminance::pixel::{Depth32F, Floating, R8I};
 use luminance::render_state::RenderState;
-use luminance::shader::{Uniform};
-use luminance::shader::types::{Mat44, Vec4, Vec3};
+use luminance::shader::types::{Mat44, Vec3, Vec4};
+use luminance::shader::Uniform;
+use luminance::texture::{Dim2, Sampler};
 use luminance::UniformInterface;
-use luminance::pixel::{Depth32F, R8I, Floating};
-use luminance::texture::{Sampler, Dim2};
-use luminance::pipeline::{TextureBinding, PipelineState};
 
 use luminance_derive::{Semantics, Vertex};
 
 use luminance_front::framebuffer::Framebuffer;
-use luminance_front::Backend;
 use luminance_front::shader::Program;
 use luminance_front::tess::Tess;
+use luminance_front::Backend;
 
-use vek::{Vec3 as Vek3, Mat4};
+use vek::{Mat4, Vec3 as Vek3};
 
 use crate::geometry::mk_sphere;
 use crate::parameters::RenderParameters;
@@ -26,7 +26,6 @@ const FS_STR: &str = include_str!("../shaders/display_fs.glsl");
 
 const SHADOW_VS_STR: &str = include_str!("../shaders/shadow_vs.glsl");
 const SHADOW_FS_STR: &str = include_str!("../shaders/shadow_fs.glsl");
-
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
 pub enum VertexSemantics {
@@ -94,8 +93,15 @@ pub struct Render<C> {
   output_fb: Framebuffer<Dim2, (), ()>,
 }
 
-impl<C> Render<C> where C : GraphicsContext<Backend = Backend> {
-  pub fn from(mut ctxt: C, parameters: &RenderParameters, output_fb: Framebuffer<Dim2, (), ()>) -> Render<C> {
+impl<C> Render<C>
+where
+  C: GraphicsContext<Backend = Backend>,
+{
+  pub fn from(
+    mut ctxt: C,
+    parameters: &RenderParameters,
+    output_fb: Framebuffer<Dim2, (), ()>,
+  ) -> Render<C> {
     let program = ctxt
       .new_shader_program::<VertexSemantics, (), ShaderInterface>()
       .from_strings(VS_STR, None, None, FS_STR)
@@ -110,9 +116,9 @@ impl<C> Render<C> where C : GraphicsContext<Backend = Backend> {
 
     log!("parameters {:?}", parameters);
 
-    let shadow_fb = ctxt.new_framebuffer::<Dim2, R8I, Depth32F>(
-      [400, 400], 0, Sampler::default()
-    ).expect("unable to create shadow framebuffer");
+    let shadow_fb = ctxt
+      .new_framebuffer::<Dim2, R8I, Depth32F>([400, 400], 0, Sampler::default())
+      .expect("unable to create shadow framebuffer");
 
     let sphere = mk_sphere(&mut ctxt, &parameters);
 
@@ -127,63 +133,52 @@ impl<C> Render<C> where C : GraphicsContext<Backend = Backend> {
   }
 
   pub fn update_mesh(&mut self, parameters: &RenderParameters) {
-      self.sphere = mk_sphere(&mut self.ctxt, parameters);
+    self.sphere = mk_sphere(&mut self.ctxt, parameters);
   }
 
-  pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
-    // let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
-    let color = parameters.color;
-    let light_position = parameters.light_position;
-
-    let sphere = &self.sphere;
-    let program = &mut self.program;
-    let shadow_program = &mut self.shadow_program;
+  fn shadow_pass(&mut self, rotation: &Mat4<f32>, projection: &Mat4<f32>, light_view: &Mat4<f32>) {
     let ctxt = &mut self.ctxt;
-
-    let projection = Mat4::perspective_fov_rh_no(
-      parameters.fov / 180. * std::f32::consts::PI,
-      400.,
-      400.,
-      0.1,
-      10.,
-    );
-
-    let light_view: Mat4<f32> = Mat4::look_at_rh(light_position, Vek3::zero(), Vek3::unit_y());
-    let rotation = vek::mat4::Mat4::identity()
-      .rotated_y(elapsed)
-      .rotated_x(elapsed / 2.);
-
+    let shadow_program = &mut self.shadow_program;
     let shadow_map = &mut self.shadow_fb;
+    let sphere = &self.sphere;
 
     let shadow_render = ctxt
       .new_pipeline_gate()
-      .pipeline(
-        shadow_map,
-        &PipelineState::default(),
-        |_, mut shd_gate| {
-          shd_gate.shade(shadow_program, |mut iface, uni, mut rdr_gate| {
-            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-              iface.set(&uni.rotation, rotation.into_col_arrays().into());
-              iface.set(&uni.projection, projection.into_col_arrays().into());
-              iface.set(&uni.light_view, light_view.into_col_arrays().into());
+      .pipeline(shadow_map, &PipelineState::default(), |_, mut shd_gate| {
+        shd_gate.shade(shadow_program, |mut iface, uni, mut rdr_gate| {
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+            iface.set(&uni.rotation, rotation.into_col_arrays().into());
+            iface.set(&uni.projection, projection.into_col_arrays().into());
+            iface.set(&uni.light_view, light_view.into_col_arrays().into());
 
-              sphere
-                .iter()
-                .map(|f| tess_gate.render(f))
-                .collect::<Result<(), _>>()
-            })
+            sphere
+              .iter()
+              .map(|f| tess_gate.render(f))
+              .collect::<Result<(), _>>()
           })
-        }
-      ).assume();
+        })
+      })
+      .assume();
 
     if !shadow_render.is_ok() {
       log!("error shadow rendering {:?}", shadow_render.into_result());
     }
+  }
 
-    let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
-    let normal_matrix = rotation.clone().inverted().transposed();
-
+  fn display_pass(
+    &mut self,
+    parameters: &RenderParameters,
+    rotation: &Mat4<f32>,
+    projection: &Mat4<f32>,
+    normal_matrix: &Mat4<f32>,
+    view: &Mat4<f32>,
+    light_view: &Mat4<f32>,
+  ) {
+    let ctxt = &mut self.ctxt;
+    let program = &mut self.program;
+    let shadow_map = &mut self.shadow_fb;
     let back_buffer = &self.output_fb;
+    let sphere = &self.sphere;
 
     let render = ctxt
       .new_pipeline_gate()
@@ -199,8 +194,11 @@ impl<C> Render<C> where C : GraphicsContext<Backend = Backend> {
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
               iface.set(&uni.rotation, rotation.into_col_arrays().into());
               iface.set(&uni.normal_matrix, normal_matrix.into_col_arrays().into());
-              iface.set(&uni.color, color.into());
-              iface.set(&uni.light_position, light_position.into_array().into());
+              iface.set(&uni.color, parameters.color.into());
+              iface.set(
+                &uni.light_position,
+                parameters.light_position.into_array().into(),
+              );
 
               iface.set(&uni.view, view.into_col_arrays().into());
               iface.set(&uni.projection, projection.into_col_arrays().into());
@@ -215,12 +213,43 @@ impl<C> Render<C> where C : GraphicsContext<Backend = Backend> {
             })
           })
         },
-        // |_, _| Ok(()),
       )
       .assume();
 
     if !render.is_ok() {
       log!("error rendering {:?}", render.into_result());
     }
+  }
+
+  pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
+    // let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
+    let projection = Mat4::perspective_fov_rh_no(
+      parameters.fov / 180. * std::f32::consts::PI,
+      400.,
+      400.,
+      0.1,
+      10.,
+    );
+
+    let rotation = vek::mat4::Mat4::identity()
+      .rotated_y(elapsed)
+      .rotated_x(elapsed / 2.);
+
+    let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
+    let light_view: Mat4<f32> =
+      Mat4::look_at_rh(parameters.light_position, Vek3::zero(), Vek3::unit_y());
+
+    self.shadow_pass(&rotation, &projection, &light_view);
+
+    let normal_matrix = rotation.clone().inverted().transposed();
+
+    self.display_pass(
+      &parameters,
+      &rotation,
+      &projection,
+      &normal_matrix,
+      &view,
+      &light_view,
+    )
   }
 }
