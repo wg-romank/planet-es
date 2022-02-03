@@ -3,7 +3,7 @@ use luminance::render_state::RenderState;
 use luminance::shader::{Uniform};
 use luminance::shader::types::{Mat44, Vec4, Vec3};
 use luminance::UniformInterface;
-use luminance::pixel::{Depth32F, R8UI, Floating};
+use luminance::pixel::{Depth32F, R8I, Floating};
 use luminance::texture::{Sampler, Dim2};
 use luminance::pipeline::{TextureBinding, PipelineState};
 
@@ -90,7 +90,7 @@ pub struct Render<C> {
   sphere: Vec<Tess<ObjVertex, u32>>,
   program: Program<VertexSemantics, (), ShaderInterface>,
   shadow_program: Program<VertexSemantics, (), ShadowShaderInterface>,
-  shadow_fb: Framebuffer<Dim2, R8UI, Depth32F>,
+  shadow_fb: Framebuffer<Dim2, R8I, Depth32F>,
   output_fb: Framebuffer<Dim2, (), ()>,
 }
 
@@ -110,7 +110,7 @@ impl<C> Render<C> where C : GraphicsContext<Backend = Backend> {
 
     log!("parameters {:?}", parameters);
 
-    let shadow_fb = ctxt.new_framebuffer::<Dim2, R8UI, Depth32F>(
+    let shadow_fb = ctxt.new_framebuffer::<Dim2, R8I, Depth32F>(
       [400, 400], 0, Sampler::default()
     ).expect("unable to create shadow framebuffer");
 
