@@ -24,21 +24,10 @@ impl WebApp {
     serde_json::to_string(&self.parameters).unwrap()
   }
 
-  pub fn new(canvas_name: &str) -> WebApp {
-    console_error_panic_hook::set_once();
-
-    let parameters = RenderParameters::new();
-    let mut surface = WebSysWebGL2Surface::new(canvas_name).expect("failed to create surface");
-    let fb = surface.back_buffer().expect("failed to get backbuffer");
-    let render = Render::from(surface, &parameters, fb);
-
-    WebApp { render, parameters }
-  }
-
   pub fn from(canvas_name: &str, parameters: &str) -> WebApp {
     console_error_panic_hook::set_once();
 
-    let parameters: RenderParameters = serde_json::from_str(parameters).unwrap();
+    let parameters: RenderParameters = serde_json::from_str(parameters).unwrap_or_else(|_| RenderParameters::new());
     let mut surface = WebSysWebGL2Surface::new(canvas_name).expect("failed to create surface");
     let fb = surface.back_buffer().expect("failed to get backbuffer");
     let render = Render::from(surface, &parameters, fb);
