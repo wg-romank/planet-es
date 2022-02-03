@@ -21,8 +21,8 @@ use crate::parameters::RenderParameters;
 
 use crate::log;
 
-const VS_STR: &str = include_str!("../shaders/vs.glsl");
-const FS_STR: &str = include_str!("../shaders/fs.glsl");
+const VS_STR: &str = include_str!("../shaders/display_vs.glsl");
+const FS_STR: &str = include_str!("../shaders/display_fs.glsl");
 
 const SHADOW_VS_STR: &str = include_str!("../shaders/shadow_vs.glsl");
 const SHADOW_FS_STR: &str = include_str!("../shaders/shadow_fs.glsl");
