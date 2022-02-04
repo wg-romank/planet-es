@@ -1,3 +1,6 @@
+use crate::shaders::QuadVertex;
+use crate::shaders::QuadPosition;
+use crate::shaders::QuadUv;
 use crate::shaders::ObjVertex;
 use crate::shaders::VertexIndex;
 use crate::shaders::VertexPosition;
@@ -86,10 +89,11 @@ const DIRECTIONS: [Vek3<f32>; 6] = [
   Vek3::new(0., 0., -1.),
 ];
 
+
 pub fn mk_sphere(
   surface: &mut impl GraphicsContext<Backend = Backend>,
   parameters: &RenderParameters,
-) -> Vec<luminance::tess::Tess<Backend, ObjVertex, u32>> {
+) -> Vec<Tess<ObjVertex, u32>> {
   let noise = FastNoise::new();
 
   DIRECTIONS
@@ -100,4 +104,47 @@ pub fn mk_sphere(
         .expect("failed to create sphere")
     })
     .collect()
+}
+
+pub fn mk_quad(
+  surface: &mut impl GraphicsContext<Backend = Backend>,
+) -> Result<Tess<QuadVertex, u32>, TessError> {
+  let vertices: Vec<QuadVertex> = vec![
+    QuadVertex::new(
+      QuadPosition::new([-1., -1.]),
+      QuadUv::new([0., 0.]),
+    ),
+    QuadVertex::new(
+      QuadPosition::new([1., -1.]),
+      QuadUv::new([1., 0.]),
+    ),
+    QuadVertex::new(
+      QuadPosition::new([-1., 1.]),
+      QuadUv::new([0., 1.]),
+    ),
+    QuadVertex::new(
+      QuadPosition::new([-1., 1.]),
+      QuadUv::new([0., 1.]),
+    ),
+    QuadVertex::new(
+      QuadPosition::new([1., -1.]),
+      QuadUv::new([1., 0.]),
+    ),
+    QuadVertex::new(
+      QuadPosition::new([1., 1.]),
+      QuadUv::new([1., 1.]),
+    ),
+  ];
+
+  let indices: Vec<u32> = vec![
+    0, 1, 2,
+    3, 4, 5,
+  ];
+
+  surface
+    .new_tess()
+    .set_mode(Mode::Triangle)
+    .set_vertices(vertices)
+    .set_indices(indices)
+    .build()
 }

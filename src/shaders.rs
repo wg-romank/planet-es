@@ -16,7 +16,7 @@ use luminance_front::Backend;
 
 use vek::{Mat4, Vec3 as Vek3};
 
-use crate::geometry::mk_sphere;
+use crate::geometry::{mk_sphere, mk_quad};
 use crate::parameters::RenderParameters;
 
 use crate::log;
@@ -26,6 +26,9 @@ const FS_STR: &str = include_str!("../shaders/display_fs.glsl");
 
 const SHADOW_VS_STR: &str = include_str!("../shaders/shadow_vs.glsl");
 const SHADOW_FS_STR: &str = include_str!("../shaders/shadow_fs.glsl");
+
+const DEBUG_VS_STR: &str = include_str!("../shaders/debug_vs.glsl");
+const DEBUG_FS_STR: &str = include_str!("../shaders/debug_shadows_fs.glsl");
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
 pub enum VertexSemantics {
@@ -41,6 +44,22 @@ pub enum VertexSemantics {
 pub struct ObjVertex {
   position: VertexPosition,
   norm: VertexNormal,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
+pub enum QuadVertexSemantics {
+  #[sem(name = "position", repr = "[f32; 2]", wrapper = "QuadPosition")]
+  Position,
+
+  #[sem(name = "uv", repr = "[f32; 2]", wrapper = "QuadUv")]
+  Uv,
+}
+
+#[derive(Clone, Copy, Debug, Vertex)]
+#[vertex(sem = "QuadVertexSemantics")]
+pub struct QuadVertex {
+  position: QuadPosition,
+  uv: QuadUv,
 }
 
 pub type VertexIndex = u32;
@@ -84,11 +103,19 @@ struct ShadowShaderInterface {
   light_view: Uniform<Mat44<f32>>,
 }
 
+#[derive(Debug, UniformInterface)]
+struct DebugShaderInterface {
+  #[uniform(unbound)]
+  depth_map: Uniform<TextureBinding<Dim2, Floating>>,
+}
+
 pub struct Render<C> {
   ctxt: C,
   sphere: Vec<Tess<ObjVertex, u32>>,
+  quad: Tess<QuadVertex, u32>,
   program: Program<VertexSemantics, (), ShaderInterface>,
   shadow_program: Program<VertexSemantics, (), ShadowShaderInterface>,
+  debug_program: Program<QuadVertexSemantics, (), DebugShaderInterface>,
   shadow_fb: Framebuffer<Dim2, R8I, Depth32F>,
   output_fb: Framebuffer<Dim2, (), ()>,
 }
@@ -114,6 +141,13 @@ where
       .expect("failed to create shadow program")
       .ignore_warnings();
 
+
+    let debug_program = ctxt
+      .new_shader_program::<QuadVertexSemantics, (), DebugShaderInterface>()
+      .from_strings(DEBUG_VS_STR, None, None, DEBUG_FS_STR)
+      .expect("failed to create debug program")
+      .ignore_warnings();
+
     log!("parameters {:?}", parameters);
 
     let shadow_fb = ctxt
@@ -122,11 +156,15 @@ where
 
     let sphere = mk_sphere(&mut ctxt, &parameters);
 
+    let quad = mk_quad(&mut ctxt).expect("failed to make quad");
+
     Render {
       ctxt,
       sphere,
+      quad,
       program,
       shadow_program,
+      debug_program,
       shadow_fb,
       output_fb,
     }
@@ -221,6 +259,39 @@ where
     }
   }
 
+  pub fn debug_pass(&mut self) {
+    let ctxt = &mut self.ctxt;
+    let program = &mut self.debug_program;
+    let shadow_map = &mut self.shadow_fb;
+    let back_buffer = &self.output_fb;
+    let quad = &self.quad;
+
+    let render = ctxt
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(), //.set_clear_color(color),
+        |pipeline, mut shd_gate| {
+          let sh_m = pipeline
+            .bind_texture(shadow_map.depth_stencil_slot())
+            .expect("failed to bind depth texture");
+
+          shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              iface.set(&uni.depth_map, sh_m.binding());
+
+              tess_gate.render(quad)
+            })
+          })
+        },
+      )
+      .assume();
+
+    if !render.is_ok() {
+      log!("error rendering {:?}", render.into_result());
+    }
+  }
+
   pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
     // let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
     let projection = Mat4::perspective_fov_rh_no(
@@ -243,13 +314,14 @@ where
 
     let normal_matrix = rotation.clone().inverted().transposed();
 
-    self.display_pass(
-      &parameters,
-      &rotation,
-      &projection,
-      &normal_matrix,
-      &view,
-      &light_view,
-    )
+    self.debug_pass();
+    // self.display_pass(
+    //   &parameters,
+    //   &rotation,
+    //   &projection,
+    //   &normal_matrix,
+    //   &view,
+    //   &light_view,
+    // )
   }
 }

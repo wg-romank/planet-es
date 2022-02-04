@@ -1,5 +1,5 @@
 out int frag_color;
 
 void main() {
-    frag_color = 1;
+  frag_color = 1;
 }
