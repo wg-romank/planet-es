@@ -12,7 +12,7 @@ let parameters_string = "{}";
 let arr = window.location.href.split("?");
 if (arr.length > 1 && arr[1] != '') {
   let raw = arr[1].split("=")[1];
-  parameters_string = atob(raw)
+  parameters_string = atob(decodeURIComponent(raw))
 }
 
 let r = fl.WebApp.from("florest-canvas", parameters_string);
