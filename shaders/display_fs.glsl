@@ -18,8 +18,8 @@ void main() {
   vec3 norm_transformed = (normalMatrix * vec4(v_norm, 0.)).xyz;
   float kd = dot(norm_transformed, -normalize(lightPosition)) + .3;
   
-  // float shadow = shadow_calc();
-  float shadow = 1.0;
+  float shadow = shadow_calc();
+  // float shadow = 1.0;
 
   frag_color = shadow * color * kd;
 }

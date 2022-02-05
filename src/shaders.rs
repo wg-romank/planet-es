@@ -1,10 +1,10 @@
 use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
-use luminance::pixel::{Depth32F, Floating, R8I};
+use luminance::pixel::{Depth32F, Floating, R8I, RGBA32F, NormR8I};
 use luminance::render_state::RenderState;
 use luminance::shader::types::{Mat44, Vec3, Vec4};
 use luminance::shader::Uniform;
-use luminance::texture::{Dim2, Sampler};
+use luminance::texture::{Dim2, Sampler, MinFilter, MagFilter};
 use luminance::UniformInterface;
 
 use luminance_derive::{Semantics, Vertex};
@@ -116,7 +116,7 @@ pub struct Render<C> {
   program: Program<VertexSemantics, (), ShaderInterface>,
   shadow_program: Program<VertexSemantics, (), ShadowShaderInterface>,
   debug_program: Program<QuadVertexSemantics, (), DebugShaderInterface>,
-  shadow_fb: Framebuffer<Dim2, R8I, Depth32F>,
+  shadow_fb: Framebuffer<Dim2, RGBA32F, Depth32F>,
   output_fb: Framebuffer<Dim2, (), ()>,
 }
 
@@ -141,7 +141,6 @@ where
       .expect("failed to create shadow program")
       .ignore_warnings();
 
-
     let debug_program = ctxt
       .new_shader_program::<QuadVertexSemantics, (), DebugShaderInterface>()
       .from_strings(DEBUG_VS_STR, None, None, DEBUG_FS_STR)
@@ -150,8 +149,13 @@ where
 
     log!("parameters {:?}", parameters);
 
+    let mut shadow_sampler = Sampler::default();
+
+    shadow_sampler.min_filter = MinFilter::Nearest;
+    shadow_sampler.mag_filter = MagFilter::Nearest;
+
     let shadow_fb = ctxt
-      .new_framebuffer::<Dim2, R8I, Depth32F>([400, 400], 0, Sampler::default())
+      .new_framebuffer::<Dim2, RGBA32F, Depth32F>([400, 400], 0, shadow_sampler)
       .expect("unable to create shadow framebuffer");
 
     let sphere = mk_sphere(&mut ctxt, &parameters);
@@ -302,9 +306,9 @@ where
       10.,
     );
 
-    let rotation = vek::mat4::Mat4::identity()
-      .rotated_y(elapsed)
-      .rotated_x(elapsed / 2.);
+    let rotation = vek::mat4::Mat4::identity();
+      // .rotated_y(elapsed)
+      // .rotated_x(elapsed / 2.);
 
     let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
     let light_view: Mat4<f32> =
