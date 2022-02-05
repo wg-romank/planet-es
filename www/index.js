@@ -7,15 +7,15 @@ const brect = canvas.getBoundingClientRect();
 canvas.setAttribute('width', brect.width);
 canvas.setAttribute('height', brect.height);
 
-let r = null;
+let parameters_string = "{}";
+
 let arr = window.location.href.split("?");
 if (arr.length > 1 && arr[1] != '') {
   let raw = arr[1].split("=")[1];
-  let parameters_string = atob(raw)
-  r = fl.Render.from("florest-canvas", parameters_string);
-} else {
-  r = fl.Render.new("florest-canvas");
+  parameters_string = atob(raw)
 }
+
+let r = fl.WebApp.from("florest-canvas", parameters_string);
 
 let parameters = JSON.parse(r.parameters());
 
