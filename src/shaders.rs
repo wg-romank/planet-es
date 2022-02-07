@@ -14,7 +14,7 @@ use luminance_front::shader::Program;
 use luminance_front::tess::Tess;
 use luminance_front::Backend;
 
-use vek::{Mat4, Vec3 as Vek3};
+use vek::{Mat4, Vec3 as Vek3, FrustumPlanes};
 
 use crate::geometry::{mk_sphere, mk_quad};
 use crate::parameters::RenderParameters;
@@ -80,6 +80,9 @@ struct ShaderInterface {
 
   #[uniform(name = "projection", unbound)]
   projection: Uniform<Mat44<f32>>,
+
+  #[uniform(name = "light_projection", unbound)]
+  light_projection: Uniform<Mat44<f32>>,
 
   #[uniform(unbound)]
   view: Uniform<Mat44<f32>>,
@@ -212,6 +215,7 @@ where
     parameters: &RenderParameters,
     rotation: &Mat4<f32>,
     projection: &Mat4<f32>,
+    light_projection: &Mat4<f32>,
     normal_matrix: &Mat4<f32>,
     view: &Mat4<f32>,
     light_view: &Mat4<f32>,
@@ -244,6 +248,7 @@ where
 
               iface.set(&uni.view, view.into_col_arrays().into());
               iface.set(&uni.projection, projection.into_col_arrays().into());
+              iface.set(&uni.light_projection, light_projection.into_col_arrays().into());
 
               iface.set(&uni.light_view, light_view.into_col_arrays().into());
               iface.set(&uni.shadow_map, sh_m.binding());
@@ -306,26 +311,36 @@ where
       10.,
     );
 
-    let rotation = vek::mat4::Mat4::identity();
-      // .rotated_y(elapsed)
-      // .rotated_x(elapsed / 2.);
+    let rotation = vek::mat4::Mat4::identity()
+      .rotated_y(elapsed)
+      .rotated_x(elapsed / 2.);
 
     let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
     let light_view: Mat4<f32> =
       Mat4::look_at_rh(parameters.light_position, Vek3::zero(), Vek3::unit_y());
 
-    self.shadow_pass(&rotation, &projection, &light_view);
+    let light_projection = Mat4::orthographic_rh_no(FrustumPlanes {
+      left: -2.,
+      right: 2.,
+      bottom: -2.,
+      top: 2.,
+      near: 0.1,
+      far: 10.,
+    });
+
+    self.shadow_pass(&rotation, &light_projection, &light_view);
 
     let normal_matrix = rotation.clone().inverted().transposed();
 
-    self.debug_pass();
-    // self.display_pass(
-    //   &parameters,
-    //   &rotation,
-    //   &projection,
-    //   &normal_matrix,
-    //   &view,
-    //   &light_view,
-    // )
+    // self.debug_pass();
+    self.display_pass(
+      &parameters,
+      &rotation,
+      &projection,
+      &light_projection,
+      &normal_matrix,
+      &view,
+      &light_view,
+    )
   }
 }

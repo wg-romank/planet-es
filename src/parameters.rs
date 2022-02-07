@@ -18,10 +18,10 @@ impl RenderParameters {
    pub fn new() -> Self {
     Self {
       fov: 90.,
-      light_position: Vek3::new(-0.85, -0.8, -0.75),
+      light_position: Vek3::new(0.07, -3., -0.95),
       color: [1., 0., 0.5, 1.],
       face_resolution: 32,
-      radius: 0.5,
+      radius: 1.,
       mesh_parameters: MeshParameters::new(),
     }
    } 
