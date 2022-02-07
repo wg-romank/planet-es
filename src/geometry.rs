@@ -64,13 +64,13 @@ impl Face {
       (i - 1, i, i + res),
     ]
     .into_iter()
-    .filter(|(i1, i2, i3)| {
-      *i1 >= 0
-        && *i1 < vertices.len() as i32
-        && *i2 >= 0
-        && *i2 < vertices.len() as i32
-        && *i3 >= 0
-        && *i3 < vertices.len() as i32
+    .filter(|&(i1, i2, i3)| {
+      i1 >= 0
+        && i1 < vertices.len() as i32
+        && i2 >= 0
+        && i2 < vertices.len() as i32
+        && i3 >= 0
+        && i3 < vertices.len() as i32
     })
     .map(|(i1, i2, i3)| (i1 as usize, i2 as usize, i3 as usize))
     .collect()
