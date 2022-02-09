@@ -1,6 +1,6 @@
 use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
-use luminance::pixel::{Depth32F, Floating, R8I, RGBA32F, NormR8I};
+use luminance::pixel::{Depth32F, Floating, RGBA32F};
 use luminance::render_state::RenderState;
 use luminance::shader::types::{Mat44, Vec3, Vec4};
 use luminance::shader::Uniform;
@@ -42,8 +42,8 @@ pub enum VertexSemantics {
 #[derive(Clone, Copy, Debug, Vertex)]
 #[vertex(sem = "VertexSemantics")]
 pub struct ObjVertex {
-  position: VertexPosition,
-  norm: VertexNormal,
+  pub position: VertexPosition,
+  pub norm: VertexNormal,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
@@ -58,8 +58,8 @@ pub enum QuadVertexSemantics {
 #[derive(Clone, Copy, Debug, Vertex)]
 #[vertex(sem = "QuadVertexSemantics")]
 pub struct QuadVertex {
-  position: QuadPosition,
-  uv: QuadUv,
+  pub position: QuadPosition,
+  pub uv: QuadUv,
 }
 
 pub type VertexIndex = u32;
@@ -107,9 +107,9 @@ struct ShadowShaderInterface {
 }
 
 #[derive(Debug, UniformInterface)]
-struct DebugShaderInterface {
+pub struct DebugShaderInterface {
   #[uniform(unbound)]
-  depth_map: Uniform<TextureBinding<Dim2, Floating>>,
+  pub depth_map: Uniform<TextureBinding<Dim2, Floating>>,
 }
 
 pub struct Render<C> {
