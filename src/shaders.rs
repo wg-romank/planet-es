@@ -16,7 +16,7 @@ use luminance_front::Backend;
 
 use vek::{Mat4, Vec3 as Vek3, FrustumPlanes};
 
-use crate::geometry::{mk_sphere, mk_quad};
+use crate::geometry::{mk_quad, Planet};
 use crate::parameters::RenderParameters;
 
 use crate::log;
@@ -114,7 +114,7 @@ pub struct DebugShaderInterface {
 
 pub struct Render<C> {
   ctxt: C,
-  sphere: Vec<Tess<ObjVertex, u32>>,
+  planet: Tess<ObjVertex, u32>,
   quad: Tess<QuadVertex, u32>,
   program: Program<VertexSemantics, (), ShaderInterface>,
   shadow_program: Program<VertexSemantics, (), ShadowShaderInterface>,
@@ -161,13 +161,13 @@ where
       .new_framebuffer::<Dim2, RGBA32F, Depth32F>([400, 400], 0, shadow_sampler)
       .expect("unable to create shadow framebuffer");
 
-    let sphere = mk_sphere(&mut ctxt, &parameters);
+    let planet = Planet::new(&parameters).to_tess(&mut ctxt).expect("failed to create planet");
 
     let quad = mk_quad(&mut ctxt).expect("failed to make quad");
 
     Render {
       ctxt,
-      sphere,
+      planet,
       quad,
       program,
       shadow_program,
@@ -178,14 +178,14 @@ where
   }
 
   pub fn update_mesh(&mut self, parameters: &RenderParameters) {
-    self.sphere = mk_sphere(&mut self.ctxt, parameters);
+    self.planet = Planet::new(&parameters).to_tess(&mut self.ctxt).expect("failed to create planet");
   }
 
   fn shadow_pass(&mut self, rotation: &Mat4<f32>, projection: &Mat4<f32>, light_view: &Mat4<f32>) {
     let ctxt = &mut self.ctxt;
     let shadow_program = &mut self.shadow_program;
     let shadow_map = &mut self.shadow_fb;
-    let sphere = &self.sphere;
+    let planet = &self.planet;
 
     let shadow_render = ctxt
       .new_pipeline_gate()
@@ -196,10 +196,7 @@ where
             iface.set(&uni.projection, projection.into_col_arrays().into());
             iface.set(&uni.light_view, light_view.into_col_arrays().into());
 
-            sphere
-              .iter()
-              .map(|f| tess_gate.render(f))
-              .collect::<Result<(), _>>()
+            tess_gate.render(planet)
           })
         })
       })
@@ -224,7 +221,7 @@ where
     let program = &mut self.program;
     let shadow_map = &mut self.shadow_fb;
     let back_buffer = &self.output_fb;
-    let sphere = &self.sphere;
+    let planet = &self.planet;
 
     let render = ctxt
       .new_pipeline_gate()
@@ -253,10 +250,7 @@ where
               iface.set(&uni.light_view, light_view.into_col_arrays().into());
               iface.set(&uni.shadow_map, sh_m.binding());
 
-              sphere
-                .iter()
-                .map(|f| tess_gate.render(f))
-                .collect::<Result<(), _>>()
+              tess_gate.render(planet)
             })
           })
         },
