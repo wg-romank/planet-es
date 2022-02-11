@@ -48,6 +48,22 @@ const hex2rgba = (hex) => {
   return [red, green, blue, 1.0];
 }
 
+const addVectorGroup = (parent, params, name) => {
+  let g = parent.add('group', {name: name })
+
+  g.add('slide', {name: 'Center X', value: params.x, min: -10, max: 10, step: 0.01}).onChange(x => {
+    params.x = x
+  })
+
+  g.add('slide', {name: 'Center Y', value: params.y, min: -10, max: 10, step: 0.01}).onChange(y => {
+    params.y = y
+  })
+
+  g.add('slide', {name: 'Center Z', value: params.z, min: -10, max: 10, step: 0.01}).onChange(z => {
+    params.z = z
+  })
+}
+
 let ui = new UIL.Gui({w: 300});
 ui.add('title', { name:'Гуга-Муга'});
 
@@ -69,17 +85,9 @@ light.add('bool', { name: 'Debug shadows', value: parameters.debug_shadows }).on
   parameters.debug_shadows = d
 })
 
-light.add('slide', {name: 'Center X', value: parameters.light_position.x, min: -10, max: 10, step: 0.01}).onChange(x => {
-  parameters.light_position.x = x
-})
+addVectorGroup(light, parameters.light_position, 'Position')
 
-light.add('slide', {name: 'Center Y', value: parameters.light_position.y, min: -10, max: 10, step: 0.01}).onChange(y => {
-  parameters.light_position.y = y
-})
-
-light.add('slide', {name: 'Center Z', value: parameters.light_position.z, min: -10, max: 10, step: 0.01}).onChange(z => {
-  parameters.light_position.z = z
-})
+light.open();
 
 ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange(c => {
   parameters.color = hex2rgba(c)
@@ -112,19 +120,7 @@ const addFilter = (parent, filterParameters) => {
     filterParameters.min_value = t
   })
 
-  let filter_center = filter.add('group', {name: 'Center'})
-
-  filter_center.add('slide', {name: 'Center X', value: filterParameters.center.x, min: -10, max: 10, step: 0.01}).onChange(x => {
-    filterParameters.center.x = x
-  })
-
-  filter_center.add('slide', {name: 'Center Y', value: filterParameters.center.y, min: -10, max: 10, step: 0.01}).onChange(y => {
-    filterParameters.center.y = y
-  })
-
-  filter_center.add('slide', {name: 'Center Z', value: filterParameters.center.z, min: -10, max: 10, step: 0.01}).onChange(z => {
-    filterParameters.center.z = z
-  })
+  addVectorGroup(filter, filterParameters.center, 'Center')
 
   filter.add('bool', { name: 'Enabled', value: filterParameters.enabled }).onChange(en => {
     filterParameters.enabled = en
