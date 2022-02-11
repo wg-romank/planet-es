@@ -17,11 +17,11 @@ pub struct RenderParameters {
 impl RenderParameters {
    pub fn new() -> Self {
     Self {
-      fov: 90.,
-      light_position: Vek3::new(0.07, -3., -0.95),
-      color: [1., 0., 0.5, 1.],
+      fov: 45.,
+      light_position: Vek3::new(-4.9, 3.57, 4.45),
+      color: [0.68, 0.48, 0., 1.],
       face_resolution: 32,
-      radius: 1.,
+      radius: 0.57,
       mesh_parameters: MeshParameters::new(),
     }
    } 
@@ -60,9 +60,9 @@ impl MeshFilterParameters {
 impl Default for MeshFilterParameters {
     fn default() -> Self {
       Self {
-          strength: 1.,
-          roughness: 0.5,
-          min_value: 0.,
+          strength: 0.14,
+          roughness: 1.38,
+          min_value: 0.54,
           center: Vek3::new(0., 0., 0.),
           enabled: true,
       }
