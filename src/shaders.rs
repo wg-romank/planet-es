@@ -1,10 +1,10 @@
 use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
-use luminance::pixel::{Depth32F, Floating, R8I};
+use luminance::pixel::{Depth32F, Floating, RGBA32F};
 use luminance::render_state::RenderState;
 use luminance::shader::types::{Mat44, Vec3, Vec4};
 use luminance::shader::Uniform;
-use luminance::texture::{Dim2, Sampler};
+use luminance::texture::{Dim2, Sampler, MinFilter, MagFilter};
 use luminance::UniformInterface;
 
 use luminance_derive::{Semantics, Vertex};
@@ -14,9 +14,9 @@ use luminance_front::shader::Program;
 use luminance_front::tess::Tess;
 use luminance_front::Backend;
 
-use vek::{Mat4, Vec3 as Vek3};
+use vek::{Mat4, Vec3 as Vek3, FrustumPlanes};
 
-use crate::geometry::mk_sphere;
+use crate::geometry::{mk_quad, Planet};
 use crate::parameters::RenderParameters;
 
 use crate::log;
@@ -26,6 +26,9 @@ const FS_STR: &str = include_str!("../shaders/display_fs.glsl");
 
 const SHADOW_VS_STR: &str = include_str!("../shaders/shadow_vs.glsl");
 const SHADOW_FS_STR: &str = include_str!("../shaders/shadow_fs.glsl");
+
+const DEBUG_VS_STR: &str = include_str!("../shaders/debug_vs.glsl");
+const DEBUG_FS_STR: &str = include_str!("../shaders/debug_shadows_fs.glsl");
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
 pub enum VertexSemantics {
@@ -39,8 +42,24 @@ pub enum VertexSemantics {
 #[derive(Clone, Copy, Debug, Vertex)]
 #[vertex(sem = "VertexSemantics")]
 pub struct ObjVertex {
-  position: VertexPosition,
-  norm: VertexNormal,
+  pub position: VertexPosition,
+  pub norm: VertexNormal,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
+pub enum QuadVertexSemantics {
+  #[sem(name = "position", repr = "[f32; 2]", wrapper = "QuadPosition")]
+  Position,
+
+  #[sem(name = "uv", repr = "[f32; 2]", wrapper = "QuadUv")]
+  Uv,
+}
+
+#[derive(Clone, Copy, Debug, Vertex)]
+#[vertex(sem = "QuadVertexSemantics")]
+pub struct QuadVertex {
+  pub position: QuadPosition,
+  pub uv: QuadUv,
 }
 
 pub type VertexIndex = u32;
@@ -61,6 +80,9 @@ struct ShaderInterface {
 
   #[uniform(name = "projection", unbound)]
   projection: Uniform<Mat44<f32>>,
+
+  #[uniform(name = "light_projection", unbound)]
+  light_projection: Uniform<Mat44<f32>>,
 
   #[uniform(unbound)]
   view: Uniform<Mat44<f32>>,
@@ -84,12 +106,20 @@ struct ShadowShaderInterface {
   light_view: Uniform<Mat44<f32>>,
 }
 
+#[derive(Debug, UniformInterface)]
+pub struct DebugShaderInterface {
+  #[uniform(unbound)]
+  pub depth_map: Uniform<TextureBinding<Dim2, Floating>>,
+}
+
 pub struct Render<C> {
   ctxt: C,
-  sphere: Vec<Tess<ObjVertex, u32>>,
+  planet: Tess<ObjVertex, u32>,
+  quad: Tess<QuadVertex, u32>,
   program: Program<VertexSemantics, (), ShaderInterface>,
   shadow_program: Program<VertexSemantics, (), ShadowShaderInterface>,
-  shadow_fb: Framebuffer<Dim2, R8I, Depth32F>,
+  debug_program: Program<QuadVertexSemantics, (), DebugShaderInterface>,
+  shadow_fb: Framebuffer<Dim2, RGBA32F, Depth32F>,
   output_fb: Framebuffer<Dim2, (), ()>,
 }
 
@@ -114,33 +144,48 @@ where
       .expect("failed to create shadow program")
       .ignore_warnings();
 
+    let debug_program = ctxt
+      .new_shader_program::<QuadVertexSemantics, (), DebugShaderInterface>()
+      .from_strings(DEBUG_VS_STR, None, None, DEBUG_FS_STR)
+      .expect("failed to create debug program")
+      .ignore_warnings();
+
     log!("parameters {:?}", parameters);
 
+    let mut shadow_sampler = Sampler::default();
+
+    shadow_sampler.min_filter = MinFilter::Nearest;
+    shadow_sampler.mag_filter = MagFilter::Nearest;
+
     let shadow_fb = ctxt
-      .new_framebuffer::<Dim2, R8I, Depth32F>([400, 400], 0, Sampler::default())
+      .new_framebuffer::<Dim2, RGBA32F, Depth32F>([400, 400], 0, shadow_sampler)
       .expect("unable to create shadow framebuffer");
 
-    let sphere = mk_sphere(&mut ctxt, &parameters);
+    let planet = Planet::new(&parameters).to_tess(&mut ctxt).expect("failed to create planet");
+
+    let quad = mk_quad(&mut ctxt).expect("failed to make quad");
 
     Render {
       ctxt,
-      sphere,
+      planet,
+      quad,
       program,
       shadow_program,
+      debug_program,
       shadow_fb,
       output_fb,
     }
   }
 
   pub fn update_mesh(&mut self, parameters: &RenderParameters) {
-    self.sphere = mk_sphere(&mut self.ctxt, parameters);
+    self.planet = Planet::new(&parameters).to_tess(&mut self.ctxt).expect("failed to create planet");
   }
 
   fn shadow_pass(&mut self, rotation: &Mat4<f32>, projection: &Mat4<f32>, light_view: &Mat4<f32>) {
     let ctxt = &mut self.ctxt;
     let shadow_program = &mut self.shadow_program;
     let shadow_map = &mut self.shadow_fb;
-    let sphere = &self.sphere;
+    let planet = &self.planet;
 
     let shadow_render = ctxt
       .new_pipeline_gate()
@@ -151,10 +196,7 @@ where
             iface.set(&uni.projection, projection.into_col_arrays().into());
             iface.set(&uni.light_view, light_view.into_col_arrays().into());
 
-            sphere
-              .iter()
-              .map(|f| tess_gate.render(f))
-              .collect::<Result<(), _>>()
+            tess_gate.render(planet)
           })
         })
       })
@@ -170,6 +212,7 @@ where
     parameters: &RenderParameters,
     rotation: &Mat4<f32>,
     projection: &Mat4<f32>,
+    light_projection: &Mat4<f32>,
     normal_matrix: &Mat4<f32>,
     view: &Mat4<f32>,
     light_view: &Mat4<f32>,
@@ -178,7 +221,7 @@ where
     let program = &mut self.program;
     let shadow_map = &mut self.shadow_fb;
     let back_buffer = &self.output_fb;
-    let sphere = &self.sphere;
+    let planet = &self.planet;
 
     let render = ctxt
       .new_pipeline_gate()
@@ -202,14 +245,45 @@ where
 
               iface.set(&uni.view, view.into_col_arrays().into());
               iface.set(&uni.projection, projection.into_col_arrays().into());
+              iface.set(&uni.light_projection, light_projection.into_col_arrays().into());
 
               iface.set(&uni.light_view, light_view.into_col_arrays().into());
               iface.set(&uni.shadow_map, sh_m.binding());
 
-              sphere
-                .iter()
-                .map(|f| tess_gate.render(f))
-                .collect::<Result<(), _>>()
+              tess_gate.render(planet)
+            })
+          })
+        },
+      )
+      .assume();
+
+    if !render.is_ok() {
+      log!("error rendering {:?}", render.into_result());
+    }
+  }
+
+  pub fn debug_pass(&mut self) {
+    let ctxt = &mut self.ctxt;
+    let program = &mut self.debug_program;
+    let shadow_map = &mut self.shadow_fb;
+    let back_buffer = &self.output_fb;
+    let quad = &self.quad;
+
+    let render = ctxt
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(), //.set_clear_color(color),
+        |pipeline, mut shd_gate| {
+          let sh_m = pipeline
+            .bind_texture(shadow_map.depth_stencil_slot())
+            .expect("failed to bind depth texture");
+
+          shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              iface.set(&uni.depth_map, sh_m.binding());
+
+              tess_gate.render(quad)
             })
           })
         },
@@ -239,14 +313,25 @@ where
     let light_view: Mat4<f32> =
       Mat4::look_at_rh(parameters.light_position, Vek3::zero(), Vek3::unit_y());
 
-    self.shadow_pass(&rotation, &projection, &light_view);
+    let light_projection = Mat4::orthographic_rh_no(FrustumPlanes {
+      left: -2.,
+      right: 2.,
+      bottom: -2.,
+      top: 2.,
+      near: 0.1,
+      far: 10.,
+    });
+
+    self.shadow_pass(&rotation, &light_projection, &light_view);
 
     let normal_matrix = rotation.clone().inverted().transposed();
 
+    // self.debug_pass();
     self.display_pass(
       &parameters,
       &rotation,
       &projection,
+      &light_projection,
       &normal_matrix,
       &view,
       &light_view,
