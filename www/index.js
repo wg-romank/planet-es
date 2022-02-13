@@ -57,7 +57,6 @@ ui.add('slide', { name: 'FOV', value: parameters.fov, min: 45, max: 180, step: 1
 
 let light = ui.add('group', { name: 'Light'})
 
-
 light.add('slide', {name: 'Center X', value: parameters.light_position.x, min: -10, max: 10, step: 0.01}).onChange(x => {
   parameters.light_position.x = x
 })
@@ -83,9 +82,13 @@ ui.add('slide', { name: 'Radius', value: parameters.radius, min: 0, max: 1, step
 })
 
 const addFilter = (parent, filterParameters) => {
-  let filter = parent.add('group', { name: 'Filter'})
+  let filter = parent.add('group', { name: filterParameters.tup });
 
-  filter.add('slide', {name: 'Strength', value: filterParameters.strength, min: 0, max: 1, step: 0.01}).onChange(s => {
+  filter.add('list', {name: 'Type', list: ['Plain', 'Ridge'], value: filterParameters.tup}).onChange(t => {
+    filterParameters.tup = t
+  })
+
+  filter.add('slide', {name: 'Strength', value: filterParameters.strength, min: -1, max: 1, step: 0.01}).onChange(s => {
     filterParameters.strength = s
   })
 
@@ -121,6 +124,7 @@ const addFilter = (parent, filterParameters) => {
   })
 
   parent.open()
+  filter.open()
 }
 
 let meshFilters = ui.add('group', {name: 'Mesh Filters'});

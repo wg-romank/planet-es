@@ -28,7 +28,14 @@ impl RenderParameters {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub enum MeshFilterType {
+  Plain,
+  Ridge,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct MeshFilterParameters {
+  tup: MeshFilterType,
   strength: f32,
   roughness: f32,
   min_value: f32,
@@ -40,11 +47,19 @@ impl MeshFilterParameters {
   pub fn evaluate(&self, noise: &FastNoise, point: Vek3<f32>) -> f32 {
     let shifted = point * self.roughness + self.center;
 
-    let noise = (noise.get_noise3d(
-      shifted.x,
-      shifted.y,
-      shifted.z
-    ) + 1.) * 0.5;
+    let noise = match self.tup {
+      MeshFilterType::Plain => {
+        (noise.get_noise3d(
+          shifted.x,
+          shifted.y,
+          shifted.z
+        ) + 1.) * 0.5
+      },
+      MeshFilterType::Ridge => {
+        let noise_r = noise.get_noise3d(shifted.x, shifted.y, shifted.z);
+        1. - noise_r.abs()
+      }
+    };
 
     f32::max(0., noise - self.min_value) * self.strength
   }
@@ -60,6 +75,7 @@ impl MeshFilterParameters {
 impl Default for MeshFilterParameters {
     fn default() -> Self {
       Self {
+          tup: MeshFilterType::Plain,
           strength: 0.14,
           roughness: 1.38,
           min_value: 0.54,
