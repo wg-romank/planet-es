@@ -1,11 +1,13 @@
 in vec3 v_pos;
 in vec3 v_norm;
 in vec4 v_frag_pos_light_space;
+in vec4 v_c;
 
 uniform mat4 normalMatrix;
 uniform vec3 lightPosition;
 uniform vec4 color;
 uniform sampler2D shadow_map;
+uniform float mode;
 
 out vec4 frag_color;
 
@@ -53,6 +55,15 @@ void main() {
 
   vec3 lighting = ((diffuse * shadow) + ambient) * color.xyz;
 
-  frag_color = vec4(lighting, 1.);
-  // frag_color = vec4(v_norm, 1.);
+  if (mode == 0.) {
+    frag_color = vec4(v_norm, 1.);
+  }
+
+  if (mode == 1.) {
+    frag_color = v_c;
+  }
+
+  if (mode == 2.) {
+    frag_color = vec4(lighting, 1.);
+  }
 }

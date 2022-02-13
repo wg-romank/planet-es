@@ -67,6 +67,10 @@ const addVectorGroup = (parent, params, name) => {
 let ui = new UIL.Gui({w: 300});
 ui.add('title', { name:'Гуга-Муга'});
 
+ui.add('list', {name: 'Mode', list: ['Normals', 'Uvs', 'Display'], value: parameters.mode}).onChange(m => {
+  parameters.mode = m
+})
+
 ui.add('slide', { name: 'FOV', value: parameters.fov, min: 45, max: 180, step: 1}).onChange(fov => {
   parameters.fov = fov
 })

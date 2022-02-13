@@ -37,6 +37,9 @@ pub enum VertexSemantics {
 
   #[sem(name = "norm", repr = "[f32; 3]", wrapper = "VertexNormal")]
   Normal,
+
+  #[sem(name = "c", repr = "[f32; 3]", wrapper = "VertexColor")]
+  Color,
 }
 
 #[derive(Clone, Copy, Debug, Vertex)]
@@ -44,6 +47,7 @@ pub enum VertexSemantics {
 pub struct ObjVertex {
   pub position: VertexPosition,
   pub norm: VertexNormal,
+  pub color: VertexColor,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
@@ -92,6 +96,9 @@ struct ShaderInterface {
 
   #[uniform(unbound)]
   shadow_map: Uniform<TextureBinding<Dim2, Floating>>,
+
+  #[uniform(unbound)]
+  mode: Uniform<f32>,
 }
 
 #[derive(Debug, UniformInterface)]
@@ -249,6 +256,7 @@ where
 
               iface.set(&uni.light_view, light_view.into_col_arrays().into());
               iface.set(&uni.shadow_map, sh_m.binding());
+              iface.set(&uni.mode, parameters.mode.in_shader());
 
               tess_gate.render(planet)
             })
@@ -309,7 +317,7 @@ where
       .rotated_y(elapsed * parameters.rotate_y_speed)
       .rotated_x(elapsed * parameters.rotate_x_speed);
 
-    let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
+    let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(2., 0., 0.), Vek3::zero(), Vek3::unit_y());
     let light_view: Mat4<f32> =
       Mat4::look_at_rh(parameters.light_position, Vek3::zero(), Vek3::unit_y());
 

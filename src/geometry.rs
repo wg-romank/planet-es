@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
-
 use crate::shaders::ObjVertex;
 use crate::shaders::QuadPosition;
 use crate::shaders::QuadUv;
 use crate::shaders::QuadVertex;
 use crate::shaders::VertexIndex;
 use crate::shaders::VertexNormal;
+use crate::shaders::VertexColor;
 use crate::shaders::VertexPosition;
 
 use crate::parameters::RenderParameters;
@@ -18,16 +16,143 @@ use luminance_front::Backend;
 use bracket_noise::prelude::FastNoise;
 use vek::Vec3 as Vek3;
 
-use crate::log;
-
 #[derive(Debug)]
 pub struct Face {
-  vertices: Vec<ObjVertex>,
+  vertices: Vec<Vek3<f32>>,
   indices: Vec<VertexIndex>,
-  border: HashSet<usize>,
+  uvs: Vec<(f32, f32)>,
 }
 
 impl Face {
+  fn make_vertices(
+    dir: &Vek3<f32>,
+    parameters: &RenderParameters,
+    noise: &FastNoise,
+  ) -> (Vec<Vek3<f32>>, Vec<VertexIndex>, Vec<(f32, f32)>) {
+    let mut vertices = Vec::<Vek3<f32>>::new();
+    let mut indices = Vec::<VertexIndex>::new();
+    let mut uvs = Vec::<(f32, f32)>::new();
+
+    let axis_a = Vek3::new(dir.y, dir.z, dir.x);
+    let axis_b = dir.cross(axis_a);
+
+    let res = parameters.face_resolution;
+
+    for y in 0..res {
+      for x in 0..res {
+        let scale_x = x as f32 / (res as f32 - 1.);
+        let scale_y = y as f32 / (res as f32 - 1.);
+
+        let poin_on_unit_sphere =
+          (dir + (scale_x * 2. - 1.) * axis_a + (scale_y * 2. - 1.) * axis_b).normalized();
+
+        let mesh_offset = parameters
+          .mesh_parameters
+          .evaluate(noise, poin_on_unit_sphere);
+        let vertex = poin_on_unit_sphere * parameters.radius * (1. + mesh_offset);
+
+        vertices.push(vertex);
+
+        if x != res - 1 && y != res - 1 {
+          let i = (x + y * res) as u32;
+          indices.push(i);
+          indices.push(i + res as u32 + 1);
+          indices.push(i + res as u32);
+
+          indices.push(i);
+          indices.push(i + 1);
+          indices.push(i + res as u32 + 1);
+        }
+        uvs.push((scale_x, scale_y));
+      }
+    }
+
+    (vertices, indices, uvs)
+  }
+
+  fn new(dir: &Vek3<f32>, parameters: &RenderParameters, noise: &FastNoise) -> Face {
+    let (vertices, indices, uvs) = Face::make_vertices(dir, parameters, noise);
+
+    Face {
+      vertices,
+      indices,
+      uvs
+    }
+  }
+}
+
+const DIRECTIONS: [Vek3<f32>; 6] = [
+  Vek3::new(1., 0., 0.),
+  Vek3::new(0., 1., 0.),
+  Vek3::new(0., 0., 1.),
+  Vek3::new(-1., 0., 0.),
+  Vek3::new(0., -1., 0.),
+  Vek3::new(0., 0., -1.),
+];
+
+pub struct Coordinate {
+  res: usize,
+  face_stride: usize,
+  face_id: usize,
+  i: usize,
+  j: usize,
+}
+
+impl Coordinate {
+  fn new(idx: usize, res: usize, face_stride: usize) -> Self {
+    todo!()
+  }
+
+  fn is_index_at_border(&self) -> bool {
+    let c = &self;
+    c.i == 0 || c.j == 0 || c.i == c.res - 1 || c.j == c.res - 1
+  }
+
+  fn is_corner_point(&self) -> bool {
+    self.i == self.j
+  }
+
+  fn neightboor_triangles(&self) -> Vec<(Coordinate, Coordinate, Coordinate)> {
+    if self.is_index_at_border() {
+      if self.is_corner_point() {
+        // 3 meshes
+        todo!()
+      } else {
+        // 2 meshes
+        match self.face_id {
+          // left border 
+          0 if self.j == 0 => todo!("neighboor id 5"),
+          0 if self.j == self.res - 1 => todo!("neighboor id 2"),
+          0 if self.i == 0 => todo!("neighboor id 1"),
+          0 if self.i == self.res - 1 => todo!("neighboor id 4"),
+
+          _ => panic!("unexpected"),
+        }
+      }
+    } else {
+      todo!()
+    }
+  }
+}
+
+// impl PartialEq for Coordinate {
+//   fn eq(&self, other: &Self) -> bool {
+//     if self.index_at_border() && other.index_at_border() {
+//       match self.face_idx {
+//         0 => todo!()
+//       }
+//     } else {
+//       self.face_idx == other.face_idx && self.i == other.i && self.j == other.j
+//     }
+//   }
+// }
+
+pub struct Planet {
+  vertices: Vec<ObjVertex>,
+  indices: Vec<VertexIndex>,
+}
+
+impl Planet {
   fn face_normal(vertices: &Vec<Vek3<f32>>, i1: usize, i2: usize, i3: usize) -> Vek3<f32> {
     let v = vertices[i2] - vertices[i1];
     let w = vertices[i3] - vertices[i1];
@@ -65,163 +190,56 @@ impl Face {
     .collect()
   }
 
-  fn vertex_normal(vertices: &Vec<Vek3<f32>>, idx: usize, res: usize) -> Vek3<f32> {
-    Face::neighboor_triangles(vertices, idx as i32, res as i32)
+  fn vertex_normal(vertices: &Vec<Vek3<f32>>, idx: usize, res: usize, face_stride: usize) -> Vek3<f32> {
+    Self::neighboor_triangles(vertices, idx as i32, res as i32)
       .into_iter()
-      .map(|(i1, i2, i3)| Face::face_normal(vertices, i1, i2, i3))
+      .map(|(i1, i2, i3)| Self::face_normal(vertices, i1, i2, i3))
       .sum::<Vek3<f32>>()
       .normalized()
   }
 
-  fn make_normals(vertices: &Vec<Vek3<f32>>, res: usize) -> Vec<Vek3<f32>> {
+  fn make_normals(vertices: &Vec<Vek3<f32>>, res: usize, face_stride: usize) -> Vec<Vek3<f32>> {
     let mut result: Vec<Vek3<f32>> = vec![];
     for i in 0..vertices.len() {
-      result.push(Face::vertex_normal(vertices, i, res));
+      result.push(Self::vertex_normal(vertices, i, res, face_stride));
     }
     result
   }
 
-  fn make_vertices(
-    dir: &Vek3<f32>,
-    parameters: &RenderParameters,
-    noise: &FastNoise,
-  ) -> (Vec<Vek3<f32>>, Vec<VertexIndex>, HashSet<usize>) {
-    let mut vertices = Vec::<Vek3<f32>>::new();
-    let mut indices = Vec::<VertexIndex>::new();
-    let mut border_vertices = HashSet::<usize>::new();
-
-    let mut i = 0;
-
-    let axis_a = Vek3::new(dir.y, dir.z, dir.x);
-    let axis_b = dir.cross(axis_a);
-
-    let res = parameters.face_resolution;
-
-    for y in 0..res {
-      for x in 0..res {
-        let scale_x = x as f32 / (res as f32 - 1.);
-        let scale_y = y as f32 / (res as f32 - 1.);
-
-        let poin_on_unit_sphere =
-          (dir + (scale_x * 2. - 1.) * axis_a + (scale_y * 2. - 1.) * axis_b).normalized();
-
-        let mesh_offset = parameters
-          .mesh_parameters
-          .evaluate(noise, poin_on_unit_sphere);
-        let vertex = poin_on_unit_sphere * parameters.radius * (1. + mesh_offset);
-
-        vertices.push(vertex);
-
-        if x != res - 1 && y != res - 1 {
-          let i = (x + y * res) as u32;
-          indices.push(i);
-          indices.push(i + res as u32 + 1);
-          indices.push(i + res as u32);
-
-          indices.push(i);
-          indices.push(i + 1);
-          indices.push(i + res as u32 + 1);
-        }
-
-        if x == 0 || y == 0 || x == res - 1 || y == res - 1 {
-          border_vertices.insert(i);
-        }
-        i += 1;
-      }
-    }
-
-    (vertices, indices, border_vertices)
-  }
-
-  fn new(dir: &Vek3<f32>, parameters: &RenderParameters, noise: &FastNoise) -> Face {
-    let (vs, indices, border) = Face::make_vertices(dir, parameters, noise);
-    let normals = Face::make_normals(&vs, parameters.face_resolution);
-
-    log!("vs {} no {}", vs.len(), normals.len());
-
-    let vertices = vs
-      .into_iter()
-      .zip(normals.into_iter())
-      .map(|(v, n)| {
-        ObjVertex::new(
-          VertexPosition::new(v.into_array()),
-          VertexNormal::new(n.into_array()),
-        )
-      })
-      .collect();
-
-    Face {
-      vertices,
-      indices,
-      border,
-    }
-  }
-}
-
-const DIRECTIONS: [Vek3<f32>; 6] = [
-  Vek3::new(1., 0., 0.),
-  Vek3::new(0., 1., 0.),
-  Vek3::new(0., 0., 1.),
-  Vek3::new(-1., 0., 0.),
-  Vek3::new(0., -1., 0.),
-  Vek3::new(0., 0., -1.),
-];
-
-pub struct Coordinate {
-  res: usize,
-  face_idx: usize,
-  i: usize,
-  j: usize,
-}
-
-impl Coordinate {
-  fn index_at_border(&self) -> bool {
-    let c = &self;
-    c.i == 0 || c.j == 0 || c.i == c.res - 1 || c.j == c.res - 1
-  }
-
-  fn neightboor_triangles(&self) -> Vec<(Coordinate, Coordinate, Coordinate)> {
-    todo!()
-  }
-}
-
-// impl PartialEq for Coordinate {
-//   fn eq(&self, other: &Self) -> bool {
-//     if self.index_at_border() && other.index_at_border() {
-//       match self.face_idx {
-//         0 => todo!()
-//       }
-//     } else {
-//       self.face_idx == other.face_idx && self.i == other.i && self.j == other.j
-//     }
-//   }
-// }
-
-pub struct Planet {
-  // right, up, forward, left, down, backward
-  // faces: Vec<Face>,
-  vertices: Vec<ObjVertex>,
-  indices: Vec<VertexIndex>,
-}
-
-impl Planet {
   pub fn new(parameters: &RenderParameters) -> Self {
     let noise = FastNoise::new();
     let faces = DIRECTIONS
            .iter()
            .map(|dir| Face::new(dir, parameters, &noise))
-           .collect();
-    let (vertices, indices) = Self::faces_to_single_mesh(faces);
+           .collect::<Vec<Face>>();
+    let face_stride = faces[0].vertices.len();
+    let (vs, indices, uvs) = Self::faces_to_single_mesh(faces, face_stride);
+
+    let normals = Self::make_normals(&vs, parameters.face_resolution, face_stride);
+
+    let vertices = vs
+      .into_iter()
+      .zip(normals.into_iter())
+      .zip(uvs.into_iter())
+      .map(|((v, n), u)| {
+        ObjVertex::new(
+          VertexPosition::new(v.into_array()),
+          VertexNormal::new(n.into_array()),
+          VertexColor::new([u.0, u.1, 0.5]),
+        )
+      })
+      .collect();
 
     Self { vertices, indices }
   }
 
-  fn faces_to_single_mesh(faces: Vec<Face>) -> (Vec<ObjVertex>, Vec<VertexIndex>) {
+  fn faces_to_single_mesh(faces: Vec<Face>, face_stride: usize) -> (Vec<Vek3<f32>>, Vec<VertexIndex>, Vec<(f32, f32)>) {
     let vertices = faces
       .iter()
       .flat_map(|f| f.vertices.iter().map(|&v| v))
       .collect();
-    let len = faces[0].vertices.len();
+
+    let uvs = faces.iter().flat_map(|f| f.uvs.iter().map(|&u| u)).collect();
     let indices = faces
       .iter()
       .enumerate()
@@ -229,25 +247,12 @@ impl Planet {
         f
           .indices
           .iter()
-          .map(move |idx| *idx + (face_id * len) as u32)
+          // right, up, forward, left, down, backward
+          .map(move |idx| *idx + (face_id * face_stride) as u32)
         )
       .collect();
 
-    (vertices, indices)
-  }
-
-  fn adjust_normals(faces: Vec<Face>) -> Vec<Face> {
-    // for each vertex on the border
-    // loop through other borders to see if there are any matching
-    // get their triangles
-    // compute single normal
-    // update existing values
-    // let border_ids = faces
-    //   .iter()
-    //   .enumerate()
-    //   .map(|(i, f)| (i, f.border))
-    //   .collect::<Vec<(usize, HashSet<usize>)>>();
-    todo!();
+    (vertices, indices, uvs)
   }
 
   pub fn to_tess(

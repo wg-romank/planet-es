@@ -5,7 +5,25 @@ use wasm_bindgen::prelude::*;
 use vek::{Vec3 as Vek3};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub enum RenderMode {
+  Normals,
+  Uvs,
+  Display,
+}
+
+impl RenderMode {
+  pub fn in_shader(&self) -> f32 {
+    match self {
+      Self::Normals => 0.,
+      Self::Uvs => 1.,
+      Self::Display => 2.,
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct RenderParameters {
+  pub mode: RenderMode,
   pub fov: f32,
   pub light_position: Vek3<f32>,
   pub rotate_x_speed: f32,
@@ -20,8 +38,9 @@ pub struct RenderParameters {
 impl RenderParameters {
    pub fn new() -> Self {
     Self {
+      mode: RenderMode::Display,
       fov: 45.,
-      light_position: Vek3::new(-4.9, 3.57, 4.45),
+      light_position: Vek3::new(2.8, 3.57, 4.45),
       rotate_x_speed: 0.5,
       rotate_y_speed: 1.0,
       debug_shadows: false,
