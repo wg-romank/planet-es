@@ -286,6 +286,9 @@
 /******/ 					"__wbg_texParameteri_52fb3e85a6d2c636": function(p0i32,p1i32,p2i32,p3i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_texParameteri_52fb3e85a6d2c636"](p0i32,p1i32,p2i32,p3i32);
 /******/ 					},
+/******/ 					"__wbg_uniform1f_96a968d4f5cb18de": function(p0i32,p1i32,p2f32) {
+/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_uniform1f_96a968d4f5cb18de"](p0i32,p1i32,p2f32);
+/******/ 					},
 /******/ 					"__wbg_uniform1i_a6ce351ee8cef296": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_uniform1i_a6ce351ee8cef296"](p0i32,p1i32,p2i32);
 /******/ 					},
@@ -516,7 +519,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/florest_bg.wasm":"fb4c2ed5d90b58baaf4d"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/florest_bg.wasm":"ef843195a77d1a1a8b9d"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
