@@ -75,11 +75,11 @@ ui.add('slide', { name: 'FOV', value: parameters.fov, min: 45, max: 180, step: 1
   parameters.fov = fov
 })
 
-ui.add('slide', { name: 'Rotate X Speed', value: parameters.rotate_x_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
+ui.add('slide', { name: 'Rotate X', value: parameters.rotate_x_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
   parameters.rotate_x_speed = r
 })
 
-ui.add('slide', { name: 'Rotate Y Speed', value: parameters.rotate_y_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
+ui.add('slide', { name: 'Rotate Y', value: parameters.rotate_y_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
   parameters.rotate_y_speed = r
 })
 
@@ -97,7 +97,7 @@ ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange
   parameters.color = hex2rgba(c)
 });
 
-ui.add('slide', { name: 'Face resolution', value: parameters.face_resolution, min: 0, max: 128, precision: 0}).onChange(fr => {
+ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 0, max: 128, precision: 0}).onChange(fr => {
   parameters.face_resolution = fr
 })
 
@@ -136,12 +136,11 @@ const addFilter = (parent, filterParameters) => {
   })
 
   parent.open()
-  filter.open()
 }
 
 let meshFilters = ui.add('group', {name: 'Mesh Filters'});
 
-meshFilters.add('bool', { name: 'Use first layer as a mask', value: parameters.mesh_parameters.use_first_layer_as_mask}).onChange(m => {
+meshFilters.add('bool', { name: 'Mask', value: parameters.mesh_parameters.use_first_layer_as_mask}).onChange(m => {
   parameters.mesh_parameters.use_first_layer_as_mask = m
 })
 
