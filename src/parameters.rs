@@ -8,6 +8,9 @@ use vek::{Vec3 as Vek3};
 pub struct RenderParameters {
   pub fov: f32,
   pub light_position: Vek3<f32>,
+  pub rotate_x_speed: f32,
+  pub rotate_y_speed: f32,
+  pub debug_shadows: bool,
   pub color: [f32; 4],
   pub face_resolution: usize,
   pub radius: f32,
@@ -19,6 +22,9 @@ impl RenderParameters {
     Self {
       fov: 45.,
       light_position: Vek3::new(-4.9, 3.57, 4.45),
+      rotate_x_speed: 0.5,
+      rotate_y_speed: 1.0,
+      debug_shadows: false,
       color: [0.68, 0.48, 0., 1.],
       face_resolution: 32,
       radius: 0.57,

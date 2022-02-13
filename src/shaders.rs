@@ -306,18 +306,18 @@ where
     );
 
     let rotation = vek::mat4::Mat4::identity()
-      .rotated_y(elapsed)
-      .rotated_x(elapsed / 2.);
+      .rotated_y(elapsed * parameters.rotate_y_speed)
+      .rotated_x(elapsed * parameters.rotate_x_speed);
 
     let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(0., 0., 2.), Vek3::zero(), Vek3::unit_y());
     let light_view: Mat4<f32> =
       Mat4::look_at_rh(parameters.light_position, Vek3::zero(), Vek3::unit_y());
 
     let light_projection = Mat4::orthographic_rh_no(FrustumPlanes {
-      left: -2.,
-      right: 2.,
-      bottom: -2.,
-      top: 2.,
+      left: -1.,
+      right: 1.,
+      bottom: -1.,
+      top: 1.,
       near: 0.1,
       far: 10.,
     });
@@ -326,15 +326,18 @@ where
 
     let normal_matrix = rotation.clone().inverted().transposed();
 
-    // self.debug_pass();
-    self.display_pass(
-      &parameters,
-      &rotation,
-      &projection,
-      &light_projection,
-      &normal_matrix,
-      &view,
-      &light_view,
-    )
+    if parameters.debug_shadows {
+      self.debug_pass();
+    } else {
+      self.display_pass(
+        &parameters,
+        &rotation,
+        &projection,
+        &light_projection,
+        &normal_matrix,
+        &view,
+        &light_view,
+      )
+    }
   }
 }

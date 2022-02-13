@@ -55,7 +55,19 @@ ui.add('slide', { name: 'FOV', value: parameters.fov, min: 45, max: 180, step: 1
   parameters.fov = fov
 })
 
+ui.add('slide', { name: 'Rotate X Speed', value: parameters.rotate_x_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
+  parameters.rotate_x_speed = r
+})
+
+ui.add('slide', { name: 'Rotate Y Speed', value: parameters.rotate_y_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
+  parameters.rotate_y_speed = r
+})
+
 let light = ui.add('group', { name: 'Light'})
+
+light.add('bool', { name: 'Debug shadows', value: parameters.debug_shadows }).onChange(d => {
+  parameters.debug_shadows = d
+})
 
 light.add('slide', {name: 'Center X', value: parameters.light_position.x, min: -10, max: 10, step: 0.01}).onChange(x => {
   parameters.light_position.x = x
