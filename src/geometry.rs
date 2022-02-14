@@ -9,7 +9,7 @@ use crate::shaders::VertexPosition;
 
 use crate::parameters::RenderParameters;
 
-use luminance::context::GraphicsContext;
+use luminance_front::context::GraphicsContext;
 use luminance_front::tess::{Mode, Tess, TessError};
 use luminance_front::Backend;
 

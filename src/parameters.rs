@@ -1,5 +1,7 @@
 use bracket_noise::prelude::FastNoise;
 use serde::{Serialize, Deserialize};
+
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 use vek::{Vec3 as Vek3};
@@ -42,7 +44,7 @@ impl RenderParameters {
       fov: 45.,
       light_position: Vek3::new(2.8, 3.57, 4.45),
       rotate_x_speed: 0.,
-      rotate_y_speed: 0.,
+      rotate_y_speed: 0.6,
       debug_shadows: false,
       color: [0.68, 0.48, 0., 1.],
       face_resolution: 32,
@@ -90,6 +92,7 @@ impl MeshFilterParameters {
   }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 impl MeshFilterParameters {
   pub fn generate() -> String {

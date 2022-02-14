@@ -1,4 +1,3 @@
-use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{Depth32F, Floating, RGBA32F};
 use luminance::render_state::RenderState;
@@ -9,6 +8,7 @@ use luminance::UniformInterface;
 
 use luminance_derive::{Semantics, Vertex};
 
+use luminance_front::context::GraphicsContext;
 use luminance_front::framebuffer::Framebuffer;
 use luminance_front::shader::Program;
 use luminance_front::tess::Tess;
@@ -120,7 +120,7 @@ pub struct DebugShaderInterface {
 }
 
 pub struct Render<C> {
-  ctxt: C,
+  pub ctxt: C,
   planet: Tess<ObjVertex, u32>,
   quad: Tess<QuadVertex, u32>,
   program: Program<VertexSemantics, (), ShaderInterface>,
