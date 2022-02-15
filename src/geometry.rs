@@ -148,8 +148,8 @@ impl Coordinate {
 // }
 
 pub struct Planet {
-  vertices: Vec<ObjVertex>,
-  indices: Vec<VertexIndex>,
+  pub vertices: Vec<ObjVertex>,
+  pub indices: Vec<VertexIndex>,
 }
 
 impl Planet {

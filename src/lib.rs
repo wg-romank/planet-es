@@ -1,4 +1,4 @@
-mod geometry;
+pub mod geometry;
 mod log;
 
 pub mod parameters;
