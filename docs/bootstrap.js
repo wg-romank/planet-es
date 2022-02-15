@@ -64,6 +64,15 @@
 /******/ 					"__wbindgen_number_new": function(p0f64) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbindgen_number_new"](p0f64);
 /******/ 					},
+/******/ 					"__wbg_new_693216e109162396": function() {
+/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_new_693216e109162396"]();
+/******/ 					},
+/******/ 					"__wbg_stack_0ddaca5d1abfb52f": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_stack_0ddaca5d1abfb52f"](p0i32,p1i32);
+/******/ 					},
+/******/ 					"__wbg_error_09919627ac0992f5": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_error_09919627ac0992f5"](p0i32,p1i32);
+/******/ 					},
 /******/ 					"__wbindgen_object_clone_ref": function(p0i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbindgen_object_clone_ref"](p0i32);
 /******/ 					},
@@ -400,15 +409,6 @@
 /******/ 					"__wbg_length_44449d3b5928d07c": function(p0i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_length_44449d3b5928d07c"](p0i32);
 /******/ 					},
-/******/ 					"__wbg_new_693216e109162396": function() {
-/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_new_693216e109162396"]();
-/******/ 					},
-/******/ 					"__wbg_stack_0ddaca5d1abfb52f": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_stack_0ddaca5d1abfb52f"](p0i32,p1i32);
-/******/ 					},
-/******/ 					"__wbg_error_09919627ac0992f5": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_error_09919627ac0992f5"](p0i32,p1i32);
-/******/ 					},
 /******/ 					"__wbindgen_debug_string": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbindgen_debug_string"](p0i32,p1i32);
 /******/ 					},
@@ -519,7 +519,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/florest_bg.wasm":"5a496e3f7e537f3961b1"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/florest_bg.wasm":"968d21094de67470e17e"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
