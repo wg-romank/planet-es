@@ -325,12 +325,12 @@ where
       Mat4::look_at_rh(parameters.light_position, Vek3::zero(), Vek3::unit_y());
 
     let light_projection = Mat4::orthographic_rh_no(FrustumPlanes {
-      left: -1.,
-      right: 1.,
-      bottom: -1.,
-      top: 1.,
-      near: -2.,
-      far: 2.,
+      left: -parameters.light_width,
+      right: parameters.light_width,
+      bottom: -parameters.light_width,
+      top: parameters.light_width,
+      near: parameters.light_near_clip,
+      far: parameters.light_far_clip,
     });
 
     self.shadow_pass(&rotation, &light_projection, &light_view);

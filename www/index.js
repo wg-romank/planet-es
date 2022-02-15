@@ -85,6 +85,18 @@ ui.add('slide', { name: 'Rotate Y', value: parameters.rotate_y_speed, min: 0, ma
 
 let light = ui.add('group', { name: 'Light'})
 
+light.add('slide', { name: 'Width', value: parameters.light_width, min: 0, max: 10, step: 0.01}).onChange(w => {
+  parameters.light_width = w
+})
+
+light.add('slide', { name: 'Near', value: parameters.light_near_clip, min: -10, max: 10, step: 0.01}).onChange(n => {
+  parameters.light_near_clip = n
+})
+
+light.add('slide', { name: 'Far', value: parameters.light_far_clip, min: 0, max: 10, step: 0.01}).onChange(f => {
+  parameters.light_far_clip = f
+})
+
 light.add('bool', { name: 'Debug shadows', value: parameters.debug_shadows }).onChange(d => {
   parameters.debug_shadows = d
 })

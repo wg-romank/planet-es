@@ -27,6 +27,9 @@ impl RenderMode {
 pub struct RenderParameters {
   pub mode: RenderMode,
   pub fov: f32,
+  pub light_near_clip: f32,
+  pub light_far_clip: f32,
+  pub light_width: f32,
   pub light_position: Vek3<f32>,
   pub rotate_x_speed: f32,
   pub rotate_y_speed: f32,
@@ -42,6 +45,10 @@ impl RenderParameters {
     Self {
       mode: RenderMode::Display,
       fov: 45.,
+      // todo: figue out way to automatically figure out correct distance
+      light_near_clip: 5.18,
+      light_far_clip: 7.37,
+      light_width: 1.,
       light_position: Vek3::new(2.8, 3.57, 4.45),
       rotate_x_speed: 0.,
       rotate_y_speed: 0.6,
