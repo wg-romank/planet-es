@@ -23,7 +23,6 @@ image = "0.24"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 glfw = "0.43"
 luminance-glfw = "0.18"
-obj-exporter = "0.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3.37"

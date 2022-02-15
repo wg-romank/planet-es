@@ -243,7 +243,6 @@ dependencies = [
  "luminance-front",
  "luminance-glfw",
  "luminance-web-sys",
- "obj-exporter",
  "serde",
  "serde_json",
  "try-guard",
@@ -652,16 +651,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "obj-exporter"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d133460dfa7bb530c954eb6c98c4c4ac983cc2ec70840f3a9cf9bf6cf3bee824"
-dependencies = [
- "lazy_static",
- "wavefront_obj",
-]
-
-[[package]]
 name = "objc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1036,12 +1025,6 @@ name = "wasm-bindgen-shared"
 version = "0.2.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d958d035c4438e28c70e4321a2911302f10135ce78a9c7834c0cab4123d06a2"
-
-[[package]]
-name = "wavefront_obj"
-version = "5.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33c9cbb65c5aac6493000cdabe11f49588d19b547ccd7501f44fc96a6b9406ff"
 
 [[package]]
 name = "web-sys"

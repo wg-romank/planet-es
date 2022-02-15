@@ -163,3 +163,7 @@ const set_parameters = (p) => {
 }
 
 ui.add('button', {name: 'Save & Share'}).onChange(() => set_parameters(parameters))
+
+ui.add('button', {name: 'Export Model'}).onChange(() => {
+  UIL.Files.save({name: 'planet.obj', data: r.export_to_obj(), type: 'text'})
+})

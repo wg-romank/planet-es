@@ -47,5 +47,9 @@ mod webapp {
 
       self.render.frame(elapsed, &self.parameters);
     }
+
+    pub fn export_to_obj(&self) -> String {
+      self.render.planet_mesh.to_obj()
+    }
   }
 }

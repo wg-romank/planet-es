@@ -2,9 +2,9 @@ use crate::shaders::ObjVertex;
 use crate::shaders::QuadPosition;
 use crate::shaders::QuadUv;
 use crate::shaders::QuadVertex;
+use crate::shaders::VertexColor;
 use crate::shaders::VertexIndex;
 use crate::shaders::VertexNormal;
-use crate::shaders::VertexColor;
 use crate::shaders::VertexPosition;
 
 use crate::parameters::RenderParameters;
@@ -76,7 +76,7 @@ impl Face {
     Face {
       vertices,
       indices,
-      uvs
+      uvs,
     }
   }
 }
@@ -120,7 +120,7 @@ impl Coordinate {
       } else {
         // 2 meshes
         match self.face_id {
-          // left border 
+          // left border
           0 if self.j == 0 => todo!("neighboor id 5"),
           0 if self.j == self.res - 1 => todo!("neighboor id 2"),
           0 if self.i == 0 => todo!("neighboor id 1"),
@@ -147,6 +147,7 @@ impl Coordinate {
 //   }
 // }
 
+#[derive(Clone)]
 pub struct Planet {
   pub vertices: Vec<ObjVertex>,
   pub indices: Vec<VertexIndex>,
@@ -190,7 +191,12 @@ impl Planet {
     .collect()
   }
 
-  fn vertex_normal(vertices: &Vec<Vek3<f32>>, idx: usize, res: usize, face_stride: usize) -> Vek3<f32> {
+  fn vertex_normal(
+    vertices: &Vec<Vek3<f32>>,
+    idx: usize,
+    res: usize,
+    face_stride: usize,
+  ) -> Vek3<f32> {
     Self::neighboor_triangles(vertices, idx as i32, res as i32)
       .into_iter()
       .map(|(i1, i2, i3)| Self::face_normal(vertices, i1, i2, i3))
@@ -209,9 +215,9 @@ impl Planet {
   pub fn new(parameters: &RenderParameters) -> Self {
     let noise = FastNoise::new();
     let faces = DIRECTIONS
-           .iter()
-           .map(|dir| Face::new(dir, parameters, &noise))
-           .collect::<Vec<Face>>();
+      .iter()
+      .map(|dir| Face::new(dir, parameters, &noise))
+      .collect::<Vec<Face>>();
     let face_stride = faces[0].vertices.len();
     let (vs, indices, uvs) = Self::faces_to_single_mesh(faces, face_stride);
 
@@ -233,23 +239,28 @@ impl Planet {
     Self { vertices, indices }
   }
 
-  fn faces_to_single_mesh(faces: Vec<Face>, face_stride: usize) -> (Vec<Vek3<f32>>, Vec<VertexIndex>, Vec<(f32, f32)>) {
+  fn faces_to_single_mesh(
+    faces: Vec<Face>,
+    face_stride: usize,
+  ) -> (Vec<Vek3<f32>>, Vec<VertexIndex>, Vec<(f32, f32)>) {
     let vertices = faces
       .iter()
       .flat_map(|f| f.vertices.iter().map(|&v| v))
       .collect();
 
-    let uvs = faces.iter().flat_map(|f| f.uvs.iter().map(|&u| u)).collect();
+    let uvs = faces
+      .iter()
+      .flat_map(|f| f.uvs.iter().map(|&u| u))
+      .collect();
     let indices = faces
       .iter()
       .enumerate()
-      .flat_map(|(face_id, f)|
-        f
-          .indices
+      .flat_map(|(face_id, f)| {
+        f.indices
           .iter()
           // right, up, forward, left, down, backward
           .map(move |idx| *idx + (face_id * face_stride) as u32)
-        )
+      })
       .collect();
 
     (vertices, indices, uvs)
@@ -259,12 +270,39 @@ impl Planet {
     self,
     surface: &mut impl GraphicsContext<Backend = Backend>,
   ) -> Result<Tess<ObjVertex, u32>, TessError> {
-    surface 
+    surface
       .new_tess()
       .set_mode(Mode::Triangle)
       .set_vertices(self.vertices)
       .set_indices(self.indices)
       .build()
+  }
+
+  pub fn to_obj(&self) -> String {
+    let mut result = String::new();
+    result.push_str("o Planet\n");
+
+    self
+      .vertices
+      .iter()
+      .map(|v| v.position.repr)
+      .for_each(|v| result.push_str(&format!("v {} {} {}\n", v[0], v[1], v[2])));
+    self
+      .vertices
+      .iter()
+      .map(|v| v.norm.repr)
+      .for_each(|v| result.push_str(&format!("vn {} {} {}\n", v[0], v[1], v[2])));
+
+    self.indices.chunks(3).for_each(|v| {
+      result.push_str(&format!(
+        "f {x}//{x} {y}//{y} {z}//{z}\n",
+        x = v[0] + 1,
+        y = v[1] + 1,
+        z = v[2] + 1,
+      ))
+    });
+
+    result
   }
 }
 

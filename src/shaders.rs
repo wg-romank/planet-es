@@ -121,6 +121,7 @@ pub struct DebugShaderInterface {
 
 pub struct Render<C> {
   pub ctxt: C,
+  pub planet_mesh: Planet,
   planet: Tess<ObjVertex, u32>,
   quad: Tess<QuadVertex, u32>,
   program: Program<VertexSemantics, (), ShaderInterface>,
@@ -168,12 +169,14 @@ where
       .new_framebuffer::<Dim2, RGBA32F, Depth32F>([400, 400], 0, shadow_sampler)
       .expect("unable to create shadow framebuffer");
 
-    let planet = Planet::new(&parameters).to_tess(&mut ctxt).expect("failed to create planet");
+    let planet_mesh = Planet::new(&parameters);
+    let planet = planet_mesh.clone().to_tess(&mut ctxt).expect("failed to create planet");
 
     let quad = mk_quad(&mut ctxt).expect("failed to make quad");
 
     Render {
       ctxt,
+      planet_mesh,
       planet,
       quad,
       program,
