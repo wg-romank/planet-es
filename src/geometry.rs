@@ -82,6 +82,7 @@ impl Face {
   }
 }
 
+#[derive(Clone, Copy)]
 enum Direction {
   Right, Up, Forward,
   Left, Down, Backward,
@@ -97,15 +98,17 @@ impl Direction {
     Direction::Backward
   ];
 
+  const DIRECTIONS_DIRS: [Vek3<f32>; 6] = [
+    Vek3::new(1., 0., 0.),
+    Vek3::new(0., 1., 0.),
+    Vek3::new(0., 0., 1.),
+    Vek3::new(-1., 0., 0.),
+    Vek3::new(0., -1., 0.),
+    Vek3::new(0., 0., -1.),
+  ];
+
   fn direction(&self) -> Vek3<f32> {
-    match self {
-      Direction::Right => Vek3::new(1., 0., 0.),
-      Direction::Up => Vek3::new(0., 1., 0.),
-      Direction::Forward => Vek3::new(0., 0., 1.),
-      Direction::Left => Vek3::new(-1., 0., 0.),
-      Direction::Down => Vek3::new(0., -1., 0.),
-      Direction::Backward => Vek3::new(0., 0., -1.),
-    }
+    Direction::DIRECTIONS_DIRS[*self as usize]
   }
 
   fn axis_a(&self) -> Direction {
@@ -120,16 +123,32 @@ impl Direction {
     }
   }
 
-  fn neightboors_x(&self) -> Vec<Direction> {
+  fn opposite(&self) -> Direction {
     use Direction::*;
     match self {
-      Right => vec![],
-      Up => vec![],
-      Forward => vec![],
-      Left => vec![],
-      Down => vec![],
-      Backward => vec![],
+      Right => Left,
+      Up => Down,
+      Forward => Backward,
+      Left => Right,
+      Down => Up,
+      Backward => Forward,
     }
+  }
+
+  fn neightboor_left(&self) -> Direction {
+    use Direction::*;
+    match self {
+      Right => Backward,
+      Up => Left,
+      Forward => Left,
+      Left => Backward,
+      Down => Right,
+      Backward => Right,
+    }
+  }
+
+  fn neightboor_right(&self) -> Direction {
+    self.neightboor_left().opposite()
   }
 
 }
@@ -198,7 +217,7 @@ pub struct Planet {
 }
 
 impl Planet {
-  fn face_normal(vertices: &Vec<Vek3<f32>>, i1: usize, i2: usize, i3: usize) -> Vek3<f32> {
+  fn face_normal(vertices: &[Vek3<f32>], i1: usize, i2: usize, i3: usize) -> Vek3<f32> {
     let v = vertices[i2] - vertices[i1];
     let w = vertices[i3] - vertices[i1];
 
@@ -210,7 +229,7 @@ impl Planet {
   }
 
   fn neighboor_triangles(
-    vertices: &Vec<Vek3<f32>>,
+    vertices: &[Vek3<f32>],
     i: i32,
     res: i32,
   ) -> Vec<(usize, usize, usize)> {
@@ -236,7 +255,7 @@ impl Planet {
   }
 
   fn vertex_normal(
-    vertices: &Vec<Vek3<f32>>,
+    vertices: &[Vek3<f32>],
     idx: usize,
     res: usize,
     face_stride: usize,
@@ -250,8 +269,11 @@ impl Planet {
 
   fn make_normals(vertices: &Vec<Vek3<f32>>, res: usize, face_stride: usize) -> Vec<Vek3<f32>> {
     let mut result: Vec<Vek3<f32>> = vec![];
-    for i in 0..vertices.len() {
-      result.push(Self::vertex_normal(vertices, i, res, face_stride));
+    for d in 0..Direction::DIRECTIONS.len() {
+      let view = &vertices[d * face_stride..(d + 1) * face_stride];
+      for i in 0..view.len() {
+        result.push(Self::vertex_normal(view, i, res, face_stride));
+      }
     }
     result
   }

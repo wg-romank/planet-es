@@ -166,7 +166,7 @@ where
     shadow_sampler.mag_filter = MagFilter::Nearest;
 
     let shadow_fb = ctxt
-      .new_framebuffer::<Dim2, RGBA32F, Depth32F>([400, 400], 0, shadow_sampler)
+      .new_framebuffer::<Dim2, RGBA32F, Depth32F>([800, 800], 0, shadow_sampler)
       .expect("unable to create shadow framebuffer");
 
     let planet_mesh = Planet::new(&parameters);
@@ -329,8 +329,8 @@ where
       right: 1.,
       bottom: -1.,
       top: 1.,
-      near: 0.1,
-      far: 10.,
+      near: -2.,
+      far: 2.,
     });
 
     self.shadow_pass(&rotation, &light_projection, &light_view);
