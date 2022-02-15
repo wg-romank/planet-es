@@ -151,64 +151,23 @@ impl Direction {
     self.neightboor_left().opposite()
   }
 
-}
-
-pub struct Coordinate {
-  res: usize,
-  face_stride: usize,
-  face_id: usize,
-  i: usize,
-  j: usize,
-}
-
-impl Coordinate {
-  fn new(idx: usize, res: usize, face_stride: usize) -> Self {
-    todo!()
-  }
-
-  fn is_index_at_border(&self) -> bool {
-    let c = &self;
-    c.i == 0 || c.j == 0 || c.i == c.res - 1 || c.j == c.res - 1
-  }
-
-  fn is_corner_point(&self) -> bool {
-    self.i == self.j
-  }
-
-  fn neightboor_triangles(&self) -> Vec<(Coordinate, Coordinate, Coordinate)> {
-    if self.is_index_at_border() {
-      if self.is_corner_point() {
-        // 3 meshes
-        todo!()
-      } else {
-        // 2 meshes
-        match self.face_id {
-          // left border
-          0 if self.j == 0 => todo!("neighboor id 5"),
-          0 if self.j == self.res - 1 => todo!("neighboor id 2"),
-          0 if self.i == 0 => todo!("neighboor id 1"),
-          0 if self.i == self.res - 1 => todo!("neighboor id 4"),
-
-          _ => panic!("unexpected"),
-        }
-      }
-    } else {
-      todo!()
+  fn neightboor_up(&self) -> Direction {
+    use Direction::*;
+    match self {
+      Right => Up,
+      Up => Forward,
+      Forward => Up,
+      Left => Up,
+      Down => Right,
+      Backward => Backward,
     }
   }
-}
 
-// impl PartialEq for Coordinate {
-//   fn eq(&self, other: &Self) -> bool {
-//     if self.index_at_border() && other.index_at_border() {
-//       match self.face_idx {
-//         0 => todo!()
-//       }
-//     } else {
-//       self.face_idx == other.face_idx && self.i == other.i && self.j == other.j
-//     }
-//   }
-// }
+  fn neightboor_down(&self) -> Direction {
+    self.neightboor_up().opposite()
+  }
+
+}
 
 #[derive(Clone)]
 pub struct Planet {
@@ -258,7 +217,6 @@ impl Planet {
     vertices: &[Vek3<f32>],
     idx: usize,
     res: usize,
-    face_stride: usize,
   ) -> Vek3<f32> {
     Self::neighboor_triangles(vertices, idx as i32, res as i32)
       .into_iter()
@@ -269,10 +227,40 @@ impl Planet {
 
   fn make_normals(vertices: &Vec<Vek3<f32>>, res: usize, face_stride: usize) -> Vec<Vek3<f32>> {
     let mut result: Vec<Vek3<f32>> = vec![];
-    for d in 0..Direction::DIRECTIONS.len() {
+    for dir in Direction::DIRECTIONS.iter() {
+      let d = *dir as usize;
       let view = &vertices[d * face_stride..(d + 1) * face_stride];
+
       for i in 0..view.len() {
-        result.push(Self::vertex_normal(view, i, res, face_stride));
+        let adj = if i % res == 0 {
+          // left
+          let n = dir.neightboor_left() as usize;
+          let neighboor_view = &vertices[n * face_stride..(n + 1) * face_stride];
+          let n_idx = i + (res - 1);
+          Self::vertex_normal(neighboor_view, n_idx, res)
+        } else if i % res == res - 1 {
+          // right
+          let n = dir.neightboor_right() as usize;
+          let neighboor_view = &vertices[n * face_stride..(n + 1) * face_stride];
+          let n_idx = i - (res - 1);
+          Self::vertex_normal(neighboor_view, n_idx, res)
+        // } else if i <= res - 1 {
+        //   // up
+        //   let n = dir.neightboor_up() as usize;
+        //   let neighboor_view = &vertices[n * face_stride..(n + 1) * face_stride];
+        //   let n_idx = i + (res - 1) * (res - 1);
+        //   Self::vertex_normal(neighboor_view, n_idx, res)
+        // } else if i >= res * (res - 1) {
+        //   // down
+        //   let n = dir.neightboor_down() as usize;
+        //   let neighboor_view = &vertices[n * face_stride..(n + 1) * face_stride];
+        //   let n_idx = i - (res - 1) * (res - 1);
+        //   Self::vertex_normal(neighboor_view, n_idx, res)
+        } else {
+          Vek3::<f32>::new(0., 0., 0.)
+        };
+
+        result.push((Self::vertex_normal(view, i, res) + adj).normalized());
       }
     }
     result
