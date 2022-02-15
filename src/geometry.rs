@@ -25,7 +25,7 @@ pub struct Face {
 
 impl Face {
   fn make_vertices(
-    dir: &Vek3<f32>,
+    d: &Direction,
     parameters: &RenderParameters,
     noise: &FastNoise,
   ) -> (Vec<Vek3<f32>>, Vec<VertexIndex>, Vec<(f32, f32)>) {
@@ -33,8 +33,9 @@ impl Face {
     let mut indices = Vec::<VertexIndex>::new();
     let mut uvs = Vec::<(f32, f32)>::new();
 
-    let axis_a = Vek3::new(dir.y, dir.z, dir.x);
-    let axis_b = dir.cross(axis_a);
+    let dir = d.direction();
+    let axis_a = d.axis_a().direction();
+    let axis_b = d.direction().cross(axis_a);
 
     let res = parameters.face_resolution;
 
@@ -70,7 +71,7 @@ impl Face {
     (vertices, indices, uvs)
   }
 
-  fn new(dir: &Vek3<f32>, parameters: &RenderParameters, noise: &FastNoise) -> Face {
+  fn new(dir: &Direction, parameters: &RenderParameters, noise: &FastNoise) -> Face {
     let (vertices, indices, uvs) = Face::make_vertices(dir, parameters, noise);
 
     Face {
@@ -81,14 +82,57 @@ impl Face {
   }
 }
 
-const DIRECTIONS: [Vek3<f32>; 6] = [
-  Vek3::new(1., 0., 0.),
-  Vek3::new(0., 1., 0.),
-  Vek3::new(0., 0., 1.),
-  Vek3::new(-1., 0., 0.),
-  Vek3::new(0., -1., 0.),
-  Vek3::new(0., 0., -1.),
-];
+enum Direction {
+  Right, Up, Forward,
+  Left, Down, Backward,
+}
+
+impl Direction {
+  const DIRECTIONS: [Direction; 6] = [
+    Direction::Right,
+    Direction::Up,
+    Direction::Forward,
+    Direction::Left,
+    Direction::Down,
+    Direction::Backward
+  ];
+
+  fn direction(&self) -> Vek3<f32> {
+    match self {
+      Direction::Right => Vek3::new(1., 0., 0.),
+      Direction::Up => Vek3::new(0., 1., 0.),
+      Direction::Forward => Vek3::new(0., 0., 1.),
+      Direction::Left => Vek3::new(-1., 0., 0.),
+      Direction::Down => Vek3::new(0., -1., 0.),
+      Direction::Backward => Vek3::new(0., 0., -1.),
+    }
+  }
+
+  fn axis_a(&self) -> Direction {
+    use Direction::*;
+    match self {
+      Right => Forward,
+      Up => Right,
+      Forward => Left,
+      Left => Backward,
+      Down => Left,
+      Backward => Right,
+    }
+  }
+
+  fn neightboors_x(&self) -> Vec<Direction> {
+    use Direction::*;
+    match self {
+      Right => vec![],
+      Up => vec![],
+      Forward => vec![],
+      Left => vec![],
+      Down => vec![],
+      Backward => vec![],
+    }
+  }
+
+}
 
 pub struct Coordinate {
   res: usize,
@@ -214,7 +258,7 @@ impl Planet {
 
   pub fn new(parameters: &RenderParameters) -> Self {
     let noise = FastNoise::new();
-    let faces = DIRECTIONS
+    let faces = Direction::DIRECTIONS
       .iter()
       .map(|dir| Face::new(dir, parameters, &noise))
       .collect::<Vec<Face>>();
