@@ -54,7 +54,7 @@ impl RenderParameters {
       rotate_y_speed: 0.6,
       debug_shadows: false,
       color: [0.68, 0.48, 0., 1.],
-      face_resolution: 32,
+      face_resolution: 4,
       radius: 0.57,
       mesh_parameters: MeshParameters::new(),
     }

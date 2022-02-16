@@ -109,7 +109,7 @@ ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange
   parameters.color = hex2rgba(c)
 });
 
-ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 0, max: 128, precision: 0}).onChange(fr => {
+ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 1, max: 8, precision: 0}).onChange(fr => {
   parameters.face_resolution = fr
 })
 

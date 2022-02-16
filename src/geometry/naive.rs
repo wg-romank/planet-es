@@ -1,21 +1,15 @@
+
 use crate::shaders::ObjVertex;
-use crate::shaders::QuadPosition;
-use crate::shaders::QuadUv;
-use crate::shaders::QuadVertex;
 use crate::shaders::VertexColor;
 use crate::shaders::VertexIndex;
 use crate::shaders::VertexNormal;
 use crate::shaders::VertexPosition;
 
 use crate::parameters::RenderParameters;
-
-use luminance_front::context::GraphicsContext;
-use luminance_front::tess::{Mode, Tess, TessError};
-use luminance_front::Backend;
+use crate::geometry::util::Mesh;
 
 use bracket_noise::prelude::FastNoise;
 use vek::Vec3 as Vek3;
-use vek::num_integer::Roots;
 
 #[derive(Debug)]
 pub struct Face {
@@ -170,7 +164,6 @@ impl Direction {
 
 }
 
-#[derive(Clone)]
 pub struct Planet {
   pub vertices: Vec<ObjVertex>,
   pub indices: Vec<VertexIndex>,
@@ -325,65 +318,14 @@ impl Planet {
 
     (vertices, indices, uvs)
   }
-
-  pub fn to_tess(
-    self,
-    surface: &mut impl GraphicsContext<Backend = Backend>,
-  ) -> Result<Tess<ObjVertex, u32>, TessError> {
-    surface
-      .new_tess()
-      .set_mode(Mode::Triangle)
-      .set_vertices(self.vertices)
-      .set_indices(self.indices)
-      .build()
-  }
-
-  pub fn to_obj(&self) -> String {
-    let mut result = String::new();
-    result.push_str("o Planet\n");
-
-    self
-      .vertices
-      .iter()
-      .map(|v| v.position.repr)
-      .for_each(|v| result.push_str(&format!("v {} {} {}\n", v[0], v[1], v[2])));
-    self
-      .vertices
-      .iter()
-      .map(|v| v.norm.repr)
-      .for_each(|v| result.push_str(&format!("vn {} {} {}\n", v[0], v[1], v[2])));
-
-    self.indices.chunks(3).for_each(|v| {
-      result.push_str(&format!(
-        "f {x}//{x} {y}//{y} {z}//{z}\n",
-        x = v[0] + 1,
-        y = v[1] + 1,
-        z = v[2] + 1,
-      ))
-    });
-
-    result
-  }
 }
 
-pub fn mk_quad(
-  surface: &mut impl GraphicsContext<Backend = Backend>,
-) -> Result<Tess<QuadVertex, u32>, TessError> {
-  let vertices: Vec<QuadVertex> = vec![
-    QuadVertex::new(QuadPosition::new([-1., -1.]), QuadUv::new([0., 0.])),
-    QuadVertex::new(QuadPosition::new([1., -1.]), QuadUv::new([1., 0.])),
-    QuadVertex::new(QuadPosition::new([-1., 1.]), QuadUv::new([0., 1.])),
-    QuadVertex::new(QuadPosition::new([-1., 1.]), QuadUv::new([0., 1.])),
-    QuadVertex::new(QuadPosition::new([1., -1.]), QuadUv::new([1., 0.])),
-    QuadVertex::new(QuadPosition::new([1., 1.]), QuadUv::new([1., 1.])),
-  ];
+impl Mesh for Planet {
+  fn vertices(&self) -> &[ObjVertex] {
+    &self.vertices
+  }
 
-  let indices: Vec<u32> = vec![0, 1, 2, 3, 4, 5];
-
-  surface
-    .new_tess()
-    .set_mode(Mode::Triangle)
-    .set_vertices(vertices)
-    .set_indices(indices)
-    .build()
+  fn indices(&self) -> &[VertexIndex] {
+    &self.indices
+  }
 }

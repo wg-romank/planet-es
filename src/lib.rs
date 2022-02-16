@@ -8,6 +8,7 @@ pub mod shaders;
 mod webapp {
   use crate::parameters::RenderParameters;
   use crate::shaders::Render;
+  use crate::geometry::util::Mesh;
 
   use console_error_panic_hook;
 

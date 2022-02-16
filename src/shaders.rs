@@ -16,7 +16,10 @@ use luminance_front::Backend;
 
 use vek::{Mat4, Vec3 as Vek3, FrustumPlanes};
 
-use crate::geometry::{mk_quad, Planet};
+use crate::geometry::ico::IcoPlanet;
+use crate::geometry::mk_quad;
+use crate::geometry::util::Mesh;
+use crate::geometry::naive::Planet;
 use crate::parameters::RenderParameters;
 
 use crate::log;
@@ -121,7 +124,7 @@ pub struct DebugShaderInterface {
 
 pub struct Render<C> {
   pub ctxt: C,
-  pub planet_mesh: Planet,
+  pub planet_mesh: IcoPlanet,
   planet: Tess<ObjVertex, u32>,
   quad: Tess<QuadVertex, u32>,
   program: Program<VertexSemantics, (), ShaderInterface>,
@@ -169,8 +172,8 @@ where
       .new_framebuffer::<Dim2, RGBA32F, Depth32F>([800, 800], 0, shadow_sampler)
       .expect("unable to create shadow framebuffer");
 
-    let planet_mesh = Planet::new(&parameters);
-    let planet = planet_mesh.clone().to_tess(&mut ctxt).expect("failed to create planet");
+    let planet_mesh = IcoPlanet::new(&parameters);
+    let planet = planet_mesh.to_tess(&mut ctxt).expect("failed to create planet");
 
     let quad = mk_quad(&mut ctxt).expect("failed to make quad");
 
@@ -188,7 +191,8 @@ where
   }
 
   pub fn update_mesh(&mut self, parameters: &RenderParameters) {
-    self.planet = Planet::new(&parameters).to_tess(&mut self.ctxt).expect("failed to create planet");
+    self.planet_mesh = IcoPlanet::new(&parameters);
+    self.planet = self.planet_mesh.to_tess(&mut self.ctxt).expect("failed to create planet");
   }
 
   fn shadow_pass(&mut self, rotation: &Mat4<f32>, projection: &Mat4<f32>, light_view: &Mat4<f32>) {
