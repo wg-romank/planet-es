@@ -40,12 +40,12 @@ const renderLoop = (timestamp) => {
 
 requestAnimationFrame(renderLoop);
 
-const hex2rgba = (hex) => {
+const hex2rgb = (hex) => {
   const red = parseInt(hex.slice(2, 4), 16) / 255;
   const green = parseInt(hex.slice(4, 6), 16) / 255;
   const blue = parseInt(hex.slice(6, 8), 16) / 255;
 
-  return [red, green, blue, 1.0];
+  return [red, green, blue];
 }
 
 const addVectorGroup = (parent, params, name) => {
@@ -105,10 +105,6 @@ addVectorGroup(light, parameters.light_position, 'Position')
 
 light.open();
 
-ui.add('color', { name:'Color', type:'rgba', value: parameters.color }).onChange(c => {
-  parameters.color = hex2rgba(c)
-});
-
 ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 1, max: 8, precision: 0}).onChange(fr => {
   parameters.face_resolution = fr
 })
@@ -117,8 +113,10 @@ ui.add('slide', { name: 'Radius', value: parameters.radius, min: 0, max: 1, step
   parameters.radius = r
 })
 
+let meshFilters = ui.add('group', {name: 'Mesh Filters'});
+
 const addFilter = (parent, filterParameters) => {
-  let filter = parent.add('group', { name: filterParameters.tup });
+  let filter = parent.add('group', { name: 'Filter'});
 
   filter.add('list', {name: 'Type', list: ['Plain', 'Ridge'], value: filterParameters.tup}).onChange(t => {
     filterParameters.tup = t
@@ -150,8 +148,6 @@ const addFilter = (parent, filterParameters) => {
   parent.open()
 }
 
-let meshFilters = ui.add('group', {name: 'Mesh Filters'});
-
 meshFilters.add('bool', { name: 'Mask', value: parameters.mesh_parameters.use_first_layer_as_mask}).onChange(m => {
   parameters.mesh_parameters.use_first_layer_as_mask = m
 })
@@ -166,6 +162,34 @@ ui.add('button', {name: 'Add Filter'}).onChange(() => {
   let params = JSON.parse(fl.MeshFilterParameters.generate())
   parameters.mesh_parameters.filters.push(params)
   addFilter(meshFilters, params)
+})
+
+let textureParameters = ui.add('group', {name: 'Texture'});
+
+const addHeight = (parent, heightParameters) => {
+  let th = parent.add('group', { name: 'Height level'} )
+  th.add('slide', {name: 'Height', value: heightParameters.max_height, min: 0, max: 0.1, step: 0.001}).onChange(h => {
+    heightParameters.max_height = h
+  })
+
+  th.add('color', { name:'Color', type:'rgba', value: heightParameters.color }).onChange(c => {
+    heightParameters.color = hex2rgb(c)
+  }) 
+
+  th.add('button', { name: 'Remove'}).onChange(_ => {
+    parameters.texture_parameters.heights = parameters.texture_parameters.heights.filter(f => f != heightParameters)
+    textureParameters.remove(filter)
+  })
+
+  parent.open()
+}
+
+parameters.texture_parameters.heights.forEach(h => addHeight(textureParameters, h))
+
+ui.add('button', {name: 'Add Height'}).onChange(() => {
+  let params = JSON.parse(fl.TextureHeightParameters.generate())
+  parameters.texture_parameters.heights.push(params)
+  addHeight(textureParameters, params)
 })
 
 const set_parameters = (p) => {

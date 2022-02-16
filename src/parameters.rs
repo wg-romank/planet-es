@@ -1,10 +1,10 @@
 use bracket_noise::prelude::FastNoise;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-use vek::{Vec3 as Vek3};
+use vek::Vec3 as Vek3;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum RenderMode {
@@ -34,14 +34,14 @@ pub struct RenderParameters {
   pub rotate_x_speed: f32,
   pub rotate_y_speed: f32,
   pub debug_shadows: bool,
-  pub color: [f32; 4],
   pub face_resolution: usize,
   pub radius: f32,
   pub mesh_parameters: MeshParameters,
+  pub texture_parameters: TextureParameters,
 }
 
 impl RenderParameters {
-   pub fn new() -> Self {
+  pub fn new() -> Self {
     Self {
       mode: RenderMode::Display,
       fov: 45.,
@@ -53,12 +53,12 @@ impl RenderParameters {
       rotate_x_speed: 0.,
       rotate_y_speed: 0.6,
       debug_shadows: false,
-      color: [0.68, 0.48, 0., 1.],
       face_resolution: 4,
       radius: 0.57,
       mesh_parameters: MeshParameters::new(),
+      texture_parameters: TextureParameters::new(),
     }
-   } 
+  }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -82,13 +82,7 @@ impl MeshFilterParameters {
     let shifted = point * self.roughness + self.center;
 
     let noise = match self.tup {
-      MeshFilterType::Plain => {
-        (noise.get_noise3d(
-          shifted.x,
-          shifted.y,
-          shifted.z
-        ) + 1.) * 0.5
-      },
+      MeshFilterType::Plain => (noise.get_noise3d(shifted.x, shifted.y, shifted.z) + 1.) * 0.5,
       MeshFilterType::Ridge => {
         let noise_r = noise.get_noise3d(shifted.x, shifted.y, shifted.z);
         1. - noise_r.abs()
@@ -108,23 +102,23 @@ impl MeshFilterParameters {
 }
 
 impl Default for MeshFilterParameters {
-    fn default() -> Self {
-      Self {
-          tup: MeshFilterType::Plain,
-          strength: 0.14,
-          roughness: 1.38,
-          min_value: 0.54,
-          center: Vek3::new(0., 0., 0.),
-          enabled: true,
-      }
+  fn default() -> Self {
+    Self {
+      tup: MeshFilterType::Plain,
+      strength: 0.14,
+      roughness: 1.38,
+      min_value: 0.54,
+      center: Vek3::new(0., 0., 0.),
+      enabled: true,
     }
+  }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct MeshParameters {
   frequency: f32,
   use_first_layer_as_mask: bool,
-  filters: Vec<MeshFilterParameters>
+  filters: Vec<MeshFilterParameters>,
 }
 
 impl MeshParameters {
@@ -132,25 +126,80 @@ impl MeshParameters {
     Self {
       frequency: 0.5,
       use_first_layer_as_mask: false,
-      filters: vec![
-        MeshFilterParameters::default(),
-      ],
+      filters: vec![MeshFilterParameters::default()],
     }
   }
 
   pub fn evaluate(&self, noise: &FastNoise, point: Vek3<f32>) -> f32 {
     if let Some(first) = self.filters.first() {
-      let first_value = if first.enabled { first.evaluate(noise, point) } else { 0.0 };
+      let first_value = if first.enabled {
+        first.evaluate(noise, point)
+      } else {
+        0.0
+      };
 
       if first_value > 0. && self.use_first_layer_as_mask || !self.use_first_layer_as_mask {
-        self.filters[1..].iter().fold((first_value, self.frequency), |(v, m), f| {
-          if f.enabled {
-            (v + m * f.evaluate(noise, point), m * self.frequency)
-          } else {
-            (v, m * self.frequency)
-          }
-        }).0
-      } else { first_value }
-    } else { 0. }
+        self.filters[1..]
+          .iter()
+          .fold((first_value, self.frequency), |(v, m), f| {
+            if f.enabled {
+              (v + m * f.evaluate(noise, point), m * self.frequency)
+            } else {
+              (v, m * self.frequency)
+            }
+          })
+          .0
+      } else {
+        first_value
+      }
+    } else {
+      0.
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct TextureParameters {
+  heights: Vec<TextureHeightParameters>,
+}
+
+impl TextureParameters {
+  fn new() -> Self {
+    Self {
+      heights: vec![TextureHeightParameters::new()],
+    }
+  }
+
+  // todo: do in a shader?
+  pub fn evaluate(&self, elevation: f32) -> [f32; 3] {
+    self
+      .heights
+      .iter()
+      .find(|p| elevation <= p.max_height)
+      .map(|p| p.color)
+      .unwrap_or_else(|| [1., 0., 0.])
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct TextureHeightParameters {
+  max_height: f32,
+  color: [f32; 3],
+}
+
+impl TextureHeightParameters {
+  fn new() -> Self {
+    Self {
+      max_height: f32::MAX,
+      color: [0.68, 0.48, 0.],
+    }
+  }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+impl TextureHeightParameters {
+  pub fn generate() -> String {
+    serde_json::to_string(&TextureHeightParameters::new()).unwrap()
   }
 }

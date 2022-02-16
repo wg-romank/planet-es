@@ -1,11 +1,10 @@
 in vec3 v_pos;
 in vec3 v_norm;
 in vec4 v_frag_pos_light_space;
-in vec4 v_c;
+in vec3 v_c;
 
 uniform mat4 normalMatrix;
 uniform vec3 lightPosition;
-uniform vec4 color;
 uniform sampler2D shadow_map;
 uniform float mode;
 
@@ -38,13 +37,13 @@ void main() {
   vec3 norm_transformed = (normalMatrix * vec4(v_norm, 0.)).xyz;
 
   //ambient
-  vec3 ambient = 0.3 * color.xyz;
+  vec3 ambient = 0.3 * v_c.xyz;
 
   // diffuse
   vec3 light_dir = normalize(lightPosition - v_pos);
   float dot_light_normal = dot(light_dir, norm_transformed);
   float diff = max(dot_light_normal, 0.0);
-  vec3 diffuse = diff * color.xyz;
+  vec3 diffuse = diff * v_c.xyz;
 
   // vec3 norm_transformed = (normalMatrix * vec4(v_norm, 0.)).xyz;
   // float kd = dot(norm_transformed, -normalize(lightPosition));
@@ -53,14 +52,14 @@ void main() {
   float shadow = shadow_calc(dot_light_normal);
   // float shadow = 1.0;
 
-  vec3 lighting = ((diffuse * shadow) + ambient) * color.xyz;
+  vec3 lighting = ((diffuse * shadow) + ambient) * v_c.xyz;
 
   if (mode == 0.) {
     frag_color = vec4(v_norm, 1.);
   }
 
   if (mode == 1.) {
-    frag_color = v_c;
+    frag_color = vec4(v_c, 1.);
   }
 
   if (mode == 2.) {

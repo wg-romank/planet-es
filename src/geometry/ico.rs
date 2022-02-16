@@ -18,17 +18,19 @@ impl IcoPlanet {
   pub fn new(parameters: &RenderParameters) -> Self {
     let noise = FastNoise::new();
 
-    let mut ico = Polyhedron::new_isocahedron(
-      parameters.radius,
-      parameters.face_resolution as u32,
-    );
+    let mut ico = Polyhedron::new_isocahedron(parameters.radius, parameters.face_resolution as u32);
+
+    let reference_positions: Vec<Vek3<f32>> = ico
+      .positions
+      .iter()
+      .map(|v| v.0 * parameters.radius)
+      .map(|v| Vek3::new(v.x, v.y, v.z))
+      .collect();
 
     ico.positions.iter_mut().for_each(|p| {
       // todo: get rid of ugly hack
       let pp = Vek3::new(p.0.x, p.0.y, p.0.z);
-      let mesh_offset = parameters
-        .mesh_parameters
-        .evaluate(&noise, pp);
+      let mesh_offset = parameters.mesh_parameters.evaluate(&noise, pp);
       let res = pp * parameters.radius * (1. + mesh_offset);
 
       p.0.x = res.x;
@@ -43,11 +45,18 @@ impl IcoPlanet {
       .positions
       .iter()
       .zip(ico.normals.iter())
-      .map(|(p, n)| {
+      .zip(reference_positions.iter())
+      .map(|((p, n), reference)| {
+        // todo: get rid of extra thingy
+        let tmp = Vek3::new(p.0.x, p.0.y, p.0.z);
         ObjVertex::new(
           VertexPosition::new([p.0.x, p.0.y, p.0.z]),
           VertexNormal::new([n.0.x, n.0.y, n.0.z]),
-          VertexColor::new([0.4, 0.2, 0.5]),
+          VertexColor::new(
+            parameters
+              .texture_parameters
+              .evaluate((tmp - reference).magnitude()),
+          ),
         )
       })
       .collect();

@@ -79,9 +79,6 @@ struct ShaderInterface {
   #[uniform(name = "normalMatrix", unbound)]
   normal_matrix: Uniform<Mat44<f32>>,
 
-  #[uniform(name = "color", unbound)]
-  color: Uniform<Vec4<f32>>,
-
   #[uniform(name = "lightPosition", unbound)]
   light_position: Uniform<Vec3<f32>>,
 
@@ -241,7 +238,7 @@ where
       .new_pipeline_gate()
       .pipeline(
         &back_buffer,
-        &PipelineState::default(), //.set_clear_color(color),
+        &PipelineState::default(),
         |pipeline, mut shd_gate| {
           let sh_m = pipeline
             .bind_texture(shadow_map.depth_stencil_slot())
@@ -251,7 +248,6 @@ where
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
               iface.set(&uni.rotation, rotation.into_col_arrays().into());
               iface.set(&uni.normal_matrix, normal_matrix.into_col_arrays().into());
-              iface.set(&uni.color, parameters.color.into());
               iface.set(
                 &uni.light_position,
                 parameters.light_position.into_array().into(),
@@ -288,7 +284,7 @@ where
       .new_pipeline_gate()
       .pipeline(
         &back_buffer,
-        &PipelineState::default(), //.set_clear_color(color),
+        &PipelineState::default(),
         |pipeline, mut shd_gate| {
           let sh_m = pipeline
             .bind_texture(shadow_map.depth_stencil_slot())
@@ -311,7 +307,6 @@ where
   }
 
   pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
-    // let color = [elapsed.cos(), elapsed.sin(), 0.5, 1.];
     let projection = Mat4::perspective_fov_rh_no(
       parameters.fov / 180. * std::f32::consts::PI,
       400.,
