@@ -15,6 +15,7 @@ use luminance_front::Backend;
 
 use bracket_noise::prelude::FastNoise;
 use vek::Vec3 as Vek3;
+use vek::num_integer::Roots;
 
 #[derive(Debug)]
 pub struct Face {
@@ -180,6 +181,12 @@ impl Planet {
     let v = vertices[i2] - vertices[i1];
     let w = vertices[i3] - vertices[i1];
 
+    //
+    // let cos_theta = v.dot(w) / (v.magnitude() * w.magnitude());
+    // let sin_theta = (1. - cos_theta.powf(2.)).sqrt();
+    // let area = 0.5 * v * v * sin_theta;
+
+    // area *
     Vek3::new(
       v.y * w.z - v.z * w.y,
       v.z * w.x - v.x * w.z,
@@ -222,7 +229,6 @@ impl Planet {
       .into_iter()
       .map(|(i1, i2, i3)| Self::face_normal(vertices, i1, i2, i3))
       .sum::<Vek3<f32>>()
-      .normalized()
   }
 
   fn make_normals(vertices: &Vec<Vek3<f32>>, res: usize, face_stride: usize) -> Vec<Vek3<f32>> {
