@@ -18,6 +18,7 @@ vek = "0.15.5"
 bracket-noise = "0.8.2"
 serde = "1.0.136"
 serde_json = "1.0.78"
+# icosahedron =  { path = "../icosahedron" }
 icosahedron = "0.1"
 image = "0.24"
 

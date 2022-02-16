@@ -42,10 +42,11 @@ impl IcoPlanet {
     let vertices = ico
       .positions
       .iter()
-      .map(|p| {
+      .zip(ico.normals.iter())
+      .map(|(p, n)| {
         ObjVertex::new(
           VertexPosition::new([p.0.x, p.0.y, p.0.z]),
-          VertexNormal::new([p.0.x, p.0.y, p.0.z]),
+          VertexNormal::new([n.0.x, n.0.y, n.0.z]),
           VertexColor::new([0.4, 0.2, 0.5]),
         )
       })
