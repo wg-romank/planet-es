@@ -179,6 +179,15 @@ impl TextureParameters {
       .map(|p| p.color)
       .unwrap_or_else(|| [1., 0., 0.])
   }
+
+  pub fn to_bytes(&self) -> Vec<[f32; 4]> {
+    (0..100).map(|idx| {
+      let v = 1. / (idx as f32);
+      let c = self.evaluate(v);
+      let c = self.heights[0].color;
+      [c[0], c[1], c[2], 1.]
+    }).collect()
+  }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -190,7 +199,7 @@ pub struct TextureHeightParameters {
 impl TextureHeightParameters {
   fn new() -> Self {
     Self {
-      max_height: f32::MAX,
+      max_height: 1.,
       color: [0.68, 0.48, 0.],
     }
   }

@@ -1,6 +1,6 @@
 
 use crate::shaders::ObjVertex;
-use crate::shaders::VertexColor;
+// use crate::shaders::VertexColor;
 use crate::shaders::VertexIndex;
 use crate::shaders::VertexNormal;
 use crate::shaders::VertexPosition;
@@ -284,7 +284,7 @@ impl Planet {
         ObjVertex::new(
           VertexPosition::new(v.into_array()),
           VertexNormal::new(n.into_array()),
-          VertexColor::new([u.0, u.1, 0.5]),
+          todo!(),
         )
       })
       .collect();

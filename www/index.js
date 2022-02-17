@@ -168,7 +168,7 @@ let textureParameters = ui.add('group', {name: 'Texture'});
 
 const addHeight = (parent, heightParameters) => {
   let th = parent.add('group', { name: 'Height level'} )
-  th.add('slide', {name: 'Height', value: heightParameters.max_height, min: 0, max: 0.1, step: 0.001}).onChange(h => {
+  th.add('slide', {name: 'Height', value: heightParameters.max_height, min: 0, max: 1, step: 0.01}).onChange(h => {
     heightParameters.max_height = h
   })
 

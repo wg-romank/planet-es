@@ -3,7 +3,7 @@ use luminance::pixel::{Depth32F, Floating, RGBA32F};
 use luminance::render_state::RenderState;
 use luminance::shader::types::{Mat44, Vec3, Vec4};
 use luminance::shader::Uniform;
-use luminance::texture::{Dim2, Sampler, MinFilter, MagFilter};
+use luminance::texture::{Dim1, Dim2, MagFilter, MinFilter, Sampler, TexelUpload};
 use luminance::UniformInterface;
 
 use luminance_derive::{Semantics, Vertex};
@@ -14,12 +14,13 @@ use luminance_front::shader::Program;
 use luminance_front::tess::Tess;
 use luminance_front::Backend;
 
-use vek::{Mat4, Vec3 as Vek3, FrustumPlanes};
+use luminance_front::texture::Texture;
+use vek::{FrustumPlanes, Mat4, Vec3 as Vek3};
 
 use crate::geometry::ico::IcoPlanet;
 use crate::geometry::mk_quad;
-use crate::geometry::util::Mesh;
 use crate::geometry::naive::Planet;
+use crate::geometry::util::Mesh;
 use crate::parameters::RenderParameters;
 
 use crate::log;
@@ -41,8 +42,8 @@ pub enum VertexSemantics {
   #[sem(name = "norm", repr = "[f32; 3]", wrapper = "VertexNormal")]
   Normal,
 
-  #[sem(name = "c", repr = "[f32; 3]", wrapper = "VertexColor")]
-  Color,
+  #[sem(name = "elevation", repr = "f32", wrapper = "VertexElevation")]
+  Elevation,
 }
 
 #[derive(Clone, Copy, Debug, Vertex)]
@@ -50,7 +51,7 @@ pub enum VertexSemantics {
 pub struct ObjVertex {
   pub position: VertexPosition,
   pub norm: VertexNormal,
-  pub color: VertexColor,
+  pub elevation: VertexElevation,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
@@ -98,7 +99,19 @@ struct ShaderInterface {
   shadow_map: Uniform<TextureBinding<Dim2, Floating>>,
 
   #[uniform(unbound)]
+  height_map: Uniform<TextureBinding<Dim2, Floating>>,
+
+  #[uniform(unbound)]
   mode: Uniform<f32>,
+
+  #[uniform(unbound)]
+  max_height: Uniform<f32>,
+
+  #[uniform(unbound)]
+  min_height: Uniform<f32>,
+
+  #[uniform(unbound)]
+  radius: Uniform<f32>,
 }
 
 #[derive(Debug, UniformInterface)]
@@ -129,6 +142,7 @@ pub struct Render<C> {
   debug_program: Program<QuadVertexSemantics, (), DebugShaderInterface>,
   shadow_fb: Framebuffer<Dim2, RGBA32F, Depth32F>,
   output_fb: Framebuffer<Dim2, (), ()>,
+  height_map: Texture<Dim2, RGBA32F>,
 }
 
 impl<C> Render<C>
@@ -169,8 +183,16 @@ where
       .new_framebuffer::<Dim2, RGBA32F, Depth32F>([800, 800], 0, shadow_sampler)
       .expect("unable to create shadow framebuffer");
 
+    let height_map = ctxt.new_texture::<Dim2, RGBA32F>([100, 1], Sampler::default(), TexelUpload::BaseLevel {
+      texels: &parameters.texture_parameters.to_bytes(),
+      mipmaps: 0,
+    }).expect("failed to create height map");
+
     let planet_mesh = IcoPlanet::new(&parameters);
-    let planet = planet_mesh.to_tess(&mut ctxt).expect("failed to create planet");
+
+    let planet = planet_mesh
+      .to_tess(&mut ctxt)
+      .expect("failed to create planet");
 
     let quad = mk_quad(&mut ctxt).expect("failed to make quad");
 
@@ -184,12 +206,23 @@ where
       debug_program,
       shadow_fb,
       output_fb,
+      height_map,
     }
   }
 
   pub fn update_mesh(&mut self, parameters: &RenderParameters) {
     self.planet_mesh = IcoPlanet::new(&parameters);
-    self.planet = self.planet_mesh.to_tess(&mut self.ctxt).expect("failed to create planet");
+    self.planet = self
+      .planet_mesh
+      .to_tess(&mut self.ctxt)
+      .expect("failed to create planet");
+
+    self.height_map = self.ctxt.new_texture::<Dim2, RGBA32F>([100, 1], Sampler::default(), TexelUpload::BaseLevel {
+      texels: &parameters.texture_parameters.to_bytes(),
+      mipmaps: 0,
+    }).expect("failed to create height map");
+
+    log!("min {} max {}", self.planet_mesh.min_height, self.planet_mesh.max_height);
   }
 
   fn shadow_pass(&mut self, rotation: &Mat4<f32>, projection: &Mat4<f32>, light_view: &Mat4<f32>) {
@@ -231,8 +264,12 @@ where
     let ctxt = &mut self.ctxt;
     let program = &mut self.program;
     let shadow_map = &mut self.shadow_fb;
+    let height_map = &mut self.height_map;
     let back_buffer = &self.output_fb;
     let planet = &self.planet;
+    let radius = parameters.radius;
+    let max_height = self.planet_mesh.max_height;
+    let min_height = self.planet_mesh.min_height;
 
     let render = ctxt
       .new_pipeline_gate()
@@ -243,6 +280,9 @@ where
           let sh_m = pipeline
             .bind_texture(shadow_map.depth_stencil_slot())
             .expect("failed to bind depth texture");
+          let hi_m = pipeline
+            .bind_texture(height_map)
+            .expect("failed to bind height map");
 
           shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
@@ -255,11 +295,19 @@ where
 
               iface.set(&uni.view, view.into_col_arrays().into());
               iface.set(&uni.projection, projection.into_col_arrays().into());
-              iface.set(&uni.light_projection, light_projection.into_col_arrays().into());
+              iface.set(
+                &uni.light_projection,
+                light_projection.into_col_arrays().into(),
+              );
 
               iface.set(&uni.light_view, light_view.into_col_arrays().into());
               iface.set(&uni.shadow_map, sh_m.binding());
               iface.set(&uni.mode, parameters.mode.in_shader());
+              iface.set(&uni.height_map, hi_m.binding());
+
+              iface.set(&uni.max_height, max_height);
+              iface.set(&uni.min_height, min_height);
+              iface.set(&uni.radius, radius);
 
               tess_gate.render(planet)
             })
