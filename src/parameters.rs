@@ -24,13 +24,42 @@ impl RenderMode {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct DiffuseLightParameters {
+  pub near_clip: f32,
+  pub far_clip: f32,
+  pub width: f32,
+  pub position: Vek3<f32>,
+}
+
+impl DiffuseLightParameters {
+  pub fn new() -> Self {
+    Self {
+      near_clip: 5.18,
+      far_clip: 7.37,
+      width: 1.,
+      position: Vek3::new(2.8, 3.57, 4.45),
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct LightingParameters {
+  pub diffuse: DiffuseLightParameters,
+}
+
+impl LightingParameters {
+  pub fn new() -> Self {
+    Self {
+      diffuse: DiffuseLightParameters::new(),
+    }
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct RenderParameters {
   pub mode: RenderMode,
   pub fov: f32,
-  pub light_near_clip: f32,
-  pub light_far_clip: f32,
-  pub light_width: f32,
-  pub light_position: Vek3<f32>,
+  pub light: LightingParameters,
   pub rotate_x_speed: f32,
   pub rotate_y_speed: f32,
   pub debug_shadows: bool,
@@ -45,11 +74,8 @@ impl RenderParameters {
     Self {
       mode: RenderMode::Display,
       fov: 45.,
+      light: LightingParameters::new(),
       // todo: figue out way to automatically figure out correct distance
-      light_near_clip: 5.18,
-      light_far_clip: 7.37,
-      light_width: 1.,
-      light_position: Vek3::new(2.8, 3.57, 4.45),
       rotate_x_speed: 0.,
       rotate_y_speed: 0.6,
       debug_shadows: false,

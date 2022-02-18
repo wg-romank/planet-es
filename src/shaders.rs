@@ -279,7 +279,7 @@ where
               iface.set(&uni.normal_matrix, normal_matrix.into_col_arrays().into());
               iface.set(
                 &uni.light_position,
-                parameters.light_position.into_array().into(),
+                parameters.light.diffuse.position.into_array().into(),
               );
 
               iface.set(&uni.view, view.into_col_arrays().into());
@@ -356,15 +356,15 @@ where
 
     let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(2., 0., 0.), Vek3::zero(), Vek3::unit_y());
     let light_view: Mat4<f32> =
-      Mat4::look_at_rh(parameters.light_position, Vek3::zero(), Vek3::unit_y());
+      Mat4::look_at_rh(parameters.light.diffuse.position, Vek3::zero(), Vek3::unit_y());
 
     let light_projection = Mat4::orthographic_rh_no(FrustumPlanes {
-      left: -parameters.light_width,
-      right: parameters.light_width,
-      bottom: -parameters.light_width,
-      top: parameters.light_width,
-      near: parameters.light_near_clip,
-      far: parameters.light_far_clip,
+      left: -parameters.light.diffuse.width,
+      right: parameters.light.diffuse.width,
+      bottom: -parameters.light.diffuse.width,
+      top: parameters.light.diffuse.width,
+      near: parameters.light.diffuse.near_clip,
+      far: parameters.light.diffuse.far_clip,
     });
 
     self.shadow_pass(&rotation, &light_projection, &light_view);

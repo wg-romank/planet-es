@@ -67,6 +67,14 @@ const addVectorGroup = (parent, params, name) => {
 let ui = new UIL.Gui({w: 300});
 ui.add('title', { name:'Гуга-Муга'});
 
+ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 1, max: 8, precision: 0}).onChange(fr => {
+  parameters.face_resolution = fr
+})
+
+ui.add('slide', { name: 'Radius', value: parameters.radius, min: 0, max: 1, step: 0.01}).onChange(r => {
+  parameters.radius = r
+})
+
 ui.add('list', {name: 'Mode', list: ['Normals', 'Uvs', 'Display'], value: parameters.mode}).onChange(m => {
   parameters.mode = m
 })
@@ -85,33 +93,27 @@ ui.add('slide', { name: 'Rotate Y', value: parameters.rotate_y_speed, min: 0, ma
 
 let light = ui.add('group', { name: 'Light'})
 
-light.add('slide', { name: 'Width', value: parameters.light_width, min: 0, max: 10, step: 0.01}).onChange(w => {
-  parameters.light_width = w
+let diffuse = light.add('group', { name: 'Diffuse' })
+
+diffuse.add('slide', { name: 'Width', value: parameters.light.diffuse.width, min: 0, max: 10, step: 0.01}).onChange(w => {
+  parameters.light.diffuse.width = w
 })
 
-light.add('slide', { name: 'Near', value: parameters.light_near_clip, min: -10, max: 10, step: 0.01}).onChange(n => {
-  parameters.light_near_clip = n
+diffuse.add('slide', { name: 'Near', value: parameters.light.diffuse.near_clip, min: -10, max: 10, step: 0.01}).onChange(n => {
+  parameters.light.diffuse.near_clip = n
 })
 
-light.add('slide', { name: 'Far', value: parameters.light_far_clip, min: 0, max: 10, step: 0.01}).onChange(f => {
-  parameters.light_far_clip = f
+diffuse.add('slide', { name: 'Far', value: parameters.light.diffuse.far_clip, min: 0, max: 10, step: 0.01}).onChange(f => {
+  parameters.light.diffuse.far_clip = f
 })
 
-light.add('bool', { name: 'Debug shadows', value: parameters.debug_shadows }).onChange(d => {
+diffuse.add('bool', { name: 'Debug shadows', value: parameters.debug_shadows }).onChange(d => {
   parameters.debug_shadows = d
 })
 
-addVectorGroup(light, parameters.light_position, 'Position')
+addVectorGroup(diffuse, parameters.light.diffuse.position, 'Position')
 
 light.open();
-
-ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 1, max: 8, precision: 0}).onChange(fr => {
-  parameters.face_resolution = fr
-})
-
-ui.add('slide', { name: 'Radius', value: parameters.radius, min: 0, max: 1, step: 0.01}).onChange(r => {
-  parameters.radius = r
-})
 
 let meshFilters = ui.add('group', {name: 'Mesh Filters'});
 
