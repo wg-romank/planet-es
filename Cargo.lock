@@ -34,15 +34,6 @@ dependencies = [
 
 [[package]]
 name = "approx"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0e60b75072ecd4168020818c0107f2857bb6c4e64252d8d3983f6263b40a5c3"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "approx"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f2a05fd1bd10b2527e20a2cd32d8873d115b8b39fe219ee25f42a8aca6ba278"
@@ -135,18 +126,6 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
-
-[[package]]
-name = "cgmath"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "283944cdecc44bf0b8dd010ec9af888d3b4f142844fdbe026c20ef68148d6fe7"
-dependencies = [
- "approx 0.3.2",
- "num-traits",
- "rand 0.6.5",
- "serde",
-]
 
 [[package]]
 name = "clap"
@@ -437,15 +416,13 @@ dependencies = [
 [[package]]
 name = "icosahedron"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3be8f0f4dc705dafdcbaf4d065589cb3f44a6e70e530add909c3eace4147d7f"
 dependencies = [
  "byteorder",
- "cgmath",
  "clap",
  "rand 0.6.5",
  "serde",
  "serde_json",
+ "vek",
 ]
 
 [[package]]
@@ -1192,7 +1169,7 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "981c47714b6de45bbd6781e164abca455a62c26c10184df76dd231aa569888fa"
 dependencies = [
- "approx 0.4.0",
+ "approx",
  "num-integer",
  "num-traits",
  "rustc_version",

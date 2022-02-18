@@ -1,9 +1,9 @@
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{Depth32F, Floating, RGBA32F};
 use luminance::render_state::RenderState;
-use luminance::shader::types::{Mat44, Vec3, Vec4};
+use luminance::shader::types::{Mat44, Vec3};
 use luminance::shader::Uniform;
-use luminance::texture::{Dim1, Dim2, MagFilter, MinFilter, Sampler, TexelUpload};
+use luminance::texture::{Dim2, MagFilter, MinFilter, Sampler, TexelUpload};
 use luminance::UniformInterface;
 
 use luminance_derive::{Semantics, Vertex};
@@ -19,7 +19,6 @@ use vek::{FrustumPlanes, Mat4, Vec3 as Vek3};
 
 use crate::geometry::ico::IcoPlanet;
 use crate::geometry::mk_quad;
-use crate::geometry::naive::Planet;
 use crate::geometry::util::Mesh;
 use crate::parameters::RenderParameters;
 
@@ -103,12 +102,6 @@ struct ShaderInterface {
 
   #[uniform(unbound)]
   mode: Uniform<f32>,
-
-  #[uniform(unbound)]
-  max_height: Uniform<f32>,
-
-  #[uniform(unbound)]
-  min_height: Uniform<f32>,
 
   #[uniform(unbound)]
   radius: Uniform<f32>,
@@ -221,8 +214,6 @@ where
       texels: &parameters.texture_parameters.to_bytes(),
       mipmaps: 0,
     }).expect("failed to create height map");
-
-    log!("min {} max {}", self.planet_mesh.min_height, self.planet_mesh.max_height);
   }
 
   fn shadow_pass(&mut self, rotation: &Mat4<f32>, projection: &Mat4<f32>, light_view: &Mat4<f32>) {
@@ -268,8 +259,6 @@ where
     let back_buffer = &self.output_fb;
     let planet = &self.planet;
     let radius = parameters.radius;
-    let max_height = self.planet_mesh.max_height;
-    let min_height = self.planet_mesh.min_height;
 
     let render = ctxt
       .new_pipeline_gate()
@@ -305,8 +294,6 @@ where
               iface.set(&uni.mode, parameters.mode.in_shader());
               iface.set(&uni.height_map, hi_m.binding());
 
-              iface.set(&uni.max_height, max_height);
-              iface.set(&uni.min_height, min_height);
               iface.set(&uni.radius, radius);
 
               tess_gate.render(planet)

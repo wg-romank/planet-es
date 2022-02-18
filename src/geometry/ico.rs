@@ -1,6 +1,5 @@
 use bracket_noise::prelude::FastNoise;
 use icosahedron::Polyhedron;
-use vek::Vec3 as Vek3;
 
 use crate::log;
 
@@ -12,8 +11,6 @@ use crate::{
 use crate::geometry::util::Mesh;
 
 pub struct IcoPlanet {
-  pub max_height: f32,
-  pub min_height: f32,
   pub vertices: Vec<ObjVertex>,
   pub indices: Vec<VertexIndex>,
 }
@@ -30,8 +27,7 @@ impl IcoPlanet {
     let mut hs: Vec<f32> = vec![];
 
     ico.positions.iter_mut().for_each(|p| {
-      // todo: get rid of ugly hack
-      let pp = Vek3::new(p.0.x, p.0.y, p.0.z);
+      let pp = p.0;
       let mesh_offset = parameters.mesh_parameters.evaluate(&noise, pp);
       let res = pp * parameters.radius * (1. + mesh_offset);
 
@@ -40,12 +36,8 @@ impl IcoPlanet {
 
       hs.push(mesh_offset);
 
-      p.0.x = res.x;
-      p.0.y = res.y;
-      p.0.z = res.z;
+      p.0 = res;
     });
-
-    hs.iter_mut().for_each(|e| *e = (*e - min_height) / (max_height - min_height));
 
     // log!("{:?}", hs);
 
@@ -58,10 +50,11 @@ impl IcoPlanet {
       .zip(ico.normals.iter())
       .zip(hs.iter())
       .map(|((p, n), e)| {
+        let elevation_normalized = (*e - min_height) / (max_height - min_height);
         ObjVertex::new(
           VertexPosition::new([p.0.x, p.0.y, p.0.z]),
           VertexNormal::new([n.0.x, n.0.y, n.0.z]),
-          VertexElevation::new(*e),
+          VertexElevation::new(elevation_normalized),
         )
       })
       .collect();
@@ -72,12 +65,7 @@ impl IcoPlanet {
       .flat_map(|t| vec![t.a as u32, t.b as u32, t.c as u32])
       .collect();
 
-    Self {
-      max_height,
-      min_height,
-      vertices,
-      indices,
-    }
+    Self { vertices, indices }
   }
 }
 

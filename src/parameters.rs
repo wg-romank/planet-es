@@ -181,9 +181,9 @@ impl TextureParameters {
   }
 
   pub fn to_bytes(&self) -> Vec<[f32; 4]> {
-    (0..100).map(|idx| {
-      let v = 1. / (idx as f32);
-      let c = self.evaluate(v);
+    (0..100).map(|_idx| {
+      // let v = 1. / (idx as f32);
+      // let c = self.evaluate(v);
       let c = self.heights[0].color;
       [c[0], c[1], c[2], 1.]
     }).collect()
