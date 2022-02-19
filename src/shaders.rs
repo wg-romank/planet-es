@@ -371,7 +371,7 @@ where
 
     let normal_matrix = rotation.clone().inverted().transposed();
 
-    if parameters.debug_shadows {
+    if parameters.light.diffuse.debug_shadows {
       self.debug_pass();
     } else {
       self.display_pass(

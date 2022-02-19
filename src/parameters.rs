@@ -29,6 +29,7 @@ pub struct DiffuseLightParameters {
   pub far_clip: f32,
   pub width: f32,
   pub position: Vek3<f32>,
+  pub debug_shadows: bool,
 }
 
 impl DiffuseLightParameters {
@@ -38,6 +39,7 @@ impl DiffuseLightParameters {
       far_clip: 7.37,
       width: 1.,
       position: Vek3::new(2.8, 3.57, 4.45),
+      debug_shadows: false,
     }
   }
 }
@@ -62,7 +64,6 @@ pub struct RenderParameters {
   pub light: LightingParameters,
   pub rotate_x_speed: f32,
   pub rotate_y_speed: f32,
-  pub debug_shadows: bool,
   pub face_resolution: usize,
   pub radius: f32,
   pub mesh_parameters: MeshParameters,
@@ -75,10 +76,8 @@ impl RenderParameters {
       mode: RenderMode::Display,
       fov: 45.,
       light: LightingParameters::new(),
-      // todo: figue out way to automatically figure out correct distance
       rotate_x_speed: 0.,
       rotate_y_speed: 0.6,
-      debug_shadows: false,
       face_resolution: 4,
       radius: 0.57,
       mesh_parameters: MeshParameters::new(),

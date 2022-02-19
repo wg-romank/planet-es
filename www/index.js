@@ -107,8 +107,8 @@ diffuse.add('slide', { name: 'Far', value: parameters.light.diffuse.far_clip, mi
   parameters.light.diffuse.far_clip = f
 })
 
-diffuse.add('bool', { name: 'Debug shadows', value: parameters.debug_shadows }).onChange(d => {
-  parameters.debug_shadows = d
+diffuse.add('bool', { name: 'Debug shadows', value: parameters.light.diffuse.debug_shadows }).onChange(d => {
+  parameters.light.diffuse.debug_shadows = d
 })
 
 addVectorGroup(diffuse, parameters.light.diffuse.position, 'Position')
