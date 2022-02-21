@@ -1,12 +1,11 @@
-use luminance::pipeline::{PipelineState, TextureBinding};
-use luminance::pixel::{Depth32F, Floating, RGBA32F};
-use luminance::render_state::RenderState;
-use luminance::shader::types::{Mat44, Vec3};
-use luminance::shader::Uniform;
-use luminance::texture::{Dim2, MagFilter, MinFilter, Sampler, TexelUpload};
-use luminance::UniformInterface;
+pub mod attributes;
+pub mod uniforms;
 
-use luminance_derive::{Semantics, Vertex};
+use luminance::pipeline::PipelineState;
+use luminance::pixel::{Depth32F, RGBA32F};
+use luminance::render_state::RenderState;
+use luminance::shader::types::Mat44;
+use luminance::texture::{Dim2, MagFilter, MinFilter, Sampler, TexelUpload};
 
 use luminance_front::context::GraphicsContext;
 use luminance_front::framebuffer::Framebuffer;
@@ -20,106 +19,29 @@ use vek::{FrustumPlanes, Mat4, Vec3 as Vek3};
 use crate::geometry::ico::IcoPlanet;
 use crate::geometry::mk_quad;
 use crate::geometry::util::Mesh;
-use crate::parameters::{RenderParameters, self};
+use crate::parameters::RenderParameters;
+
+use crate::shaders::attributes::{PlanetVertex, PlanetVertexSemantics, QuadVertex, QuadVertexSemantics};
+use crate::shaders::uniforms::{DebugShaderInterface, ShaderInterface, ShadowShaderInterface};
 
 use crate::log;
 
-const VS_STR: &str = include_str!("../shaders/display_vs.glsl");
-const FS_STR: &str = include_str!("../shaders/display_fs.glsl");
+const VS_STR: &str = include_str!("../../shaders/display_vs.glsl");
+const FS_STR: &str = include_str!("../../shaders/display_fs.glsl");
 
-const SHADOW_VS_STR: &str = include_str!("../shaders/shadow_vs.glsl");
-const SHADOW_FS_STR: &str = include_str!("../shaders/shadow_fs.glsl");
+const SHADOW_VS_STR: &str = include_str!("../../shaders/shadow_vs.glsl");
+const SHADOW_FS_STR: &str = include_str!("../../shaders/shadow_fs.glsl");
 
-const DEBUG_VS_STR: &str = include_str!("../shaders/debug_vs.glsl");
-const DEBUG_FS_STR: &str = include_str!("../shaders/debug_shadows_fs.glsl");
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
-pub enum VertexSemantics {
-  #[sem(name = "position", repr = "[f32; 3]", wrapper = "VertexPosition")]
-  Position,
-
-  #[sem(name = "norm", repr = "[f32; 3]", wrapper = "VertexNormal")]
-  Normal,
-
-  #[sem(name = "elevation", repr = "f32", wrapper = "VertexElevation")]
-  Elevation,
-}
-
-#[derive(Clone, Copy, Debug, Vertex)]
-#[vertex(sem = "VertexSemantics")]
-pub struct ObjVertex {
-  pub position: VertexPosition,
-  pub norm: VertexNormal,
-  pub elevation: VertexElevation,
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
-pub enum QuadVertexSemantics {
-  #[sem(name = "position", repr = "[f32; 2]", wrapper = "QuadPosition")]
-  Position,
-
-  #[sem(name = "uv", repr = "[f32; 2]", wrapper = "QuadUv")]
-  Uv,
-}
-
-#[derive(Clone, Copy, Debug, Vertex)]
-#[vertex(sem = "QuadVertexSemantics")]
-pub struct QuadVertex {
-  pub position: QuadPosition,
-  pub uv: QuadUv,
-}
-
-pub type VertexIndex = u32;
-
-#[derive(Debug, UniformInterface)]
-struct ShaderInterface {
-  #[uniform(name = "rotation", unbound)]
-  rotation: Uniform<Mat44<f32>>,
-
-  #[uniform(name = "normalMatrix", unbound)]
-  normal_matrix: Uniform<Mat44<f32>>,
-
-  #[uniform(name = "lightPosition", unbound)]
-  light_position: Uniform<Vec3<f32>>,
-
-  #[uniform(name = "model", unbound)]
-  model: Uniform<Mat44<f32>>,
-
-  #[uniform(name = "light_model", unbound)]
-  light_model: Uniform<Mat44<f32>>,
-
-  #[uniform(unbound)]
-  shadow_map: Uniform<TextureBinding<Dim2, Floating>>,
-
-  #[uniform(unbound)]
-  height_map: Uniform<TextureBinding<Dim2, Floating>>,
-
-  #[uniform(unbound)]
-  mode: Uniform<f32>,
-}
-
-#[derive(Debug, UniformInterface)]
-struct ShadowShaderInterface {
-  #[uniform(name = "rotation", unbound)]
-  rotation: Uniform<Mat44<f32>>,
-
-  #[uniform(name = "light_model", unbound)]
-  light_model: Uniform<Mat44<f32>>,
-}
-
-#[derive(Debug, UniformInterface)]
-pub struct DebugShaderInterface {
-  #[uniform(unbound)]
-  pub depth_map: Uniform<TextureBinding<Dim2, Floating>>,
-}
+const DEBUG_VS_STR: &str = include_str!("../../shaders/debug_vs.glsl");
+const DEBUG_FS_STR: &str = include_str!("../../shaders/debug_shadows_fs.glsl");
 
 pub struct Render<C> {
   pub ctxt: C,
   pub planet_mesh: IcoPlanet,
-  planet: Tess<ObjVertex, u32>,
+  planet: Tess<PlanetVertex, u32>,
   quad: Tess<QuadVertex, u32>,
-  program: Program<VertexSemantics, (), ShaderInterface>,
-  shadow_program: Program<VertexSemantics, (), ShadowShaderInterface>,
+  program: Program<PlanetVertexSemantics, (), ShaderInterface>,
+  shadow_program: Program<PlanetVertexSemantics, (), ShadowShaderInterface>,
   debug_program: Program<QuadVertexSemantics, (), DebugShaderInterface>,
   shadow_fb: Framebuffer<Dim2, RGBA32F, Depth32F>,
   output_fb: Framebuffer<Dim2, (), ()>,
@@ -138,13 +60,13 @@ where
     output_fb: Framebuffer<Dim2, (), ()>,
   ) -> Render<C> {
     let program = ctxt
-      .new_shader_program::<VertexSemantics, (), ShaderInterface>()
+      .new_shader_program::<PlanetVertexSemantics, (), ShaderInterface>()
       .from_strings(VS_STR, None, None, FS_STR)
       .expect("failed to create program")
       .ignore_warnings();
 
     let shadow_program = ctxt
-      .new_shader_program::<VertexSemantics, (), ShadowShaderInterface>()
+      .new_shader_program::<PlanetVertexSemantics, (), ShadowShaderInterface>()
       .from_strings(SHADOW_VS_STR, None, None, SHADOW_FS_STR)
       .expect("failed to create shadow program")
       .ignore_warnings();
@@ -166,10 +88,16 @@ where
       .new_framebuffer::<Dim2, RGBA32F, Depth32F>([800, 800], 0, shadow_sampler)
       .expect("unable to create shadow framebuffer");
 
-    let height_map = ctxt.new_texture::<Dim2, RGBA32F>([100, 1], Sampler::default(), TexelUpload::BaseLevel {
-      texels: &parameters.texture_parameters.to_bytes(),
-      mipmaps: 0,
-    }).expect("failed to create height map");
+    let height_map = ctxt
+      .new_texture::<Dim2, RGBA32F>(
+        [100, 1],
+        Sampler::default(),
+        TexelUpload::BaseLevel {
+          texels: &parameters.texture_parameters.to_bytes(),
+          mipmaps: 0,
+        },
+      )
+      .expect("failed to create height map");
 
     let planet_mesh = IcoPlanet::new(&parameters);
 
@@ -202,10 +130,17 @@ where
       .to_tess(&mut self.ctxt)
       .expect("failed to create planet");
 
-    self.height_map = self.ctxt.new_texture::<Dim2, RGBA32F>([100, 1], Sampler::default(), TexelUpload::BaseLevel {
-      texels: &parameters.texture_parameters.to_bytes(),
-      mipmaps: 0,
-    }).expect("failed to create height map");
+    self.height_map = self
+      .ctxt
+      .new_texture::<Dim2, RGBA32F>(
+        [100, 1],
+        Sampler::default(),
+        TexelUpload::BaseLevel {
+          texels: &parameters.texture_parameters.to_bytes(),
+          mipmaps: 0,
+        },
+      )
+      .expect("failed to create height map");
 
     self.model = Self::compute_model(parameters);
     self.light_model = Self::compute_light_model(parameters);
@@ -341,8 +276,11 @@ where
   }
 
   pub fn compute_light_model(parameters: &RenderParameters) -> Mat44<f32> {
-    let light_view: Mat4<f32> =
-      Mat4::look_at_rh(parameters.light.diffuse.position, Vek3::zero(), Vek3::unit_y());
+    let light_view: Mat4<f32> = Mat4::look_at_rh(
+      parameters.light.diffuse.position,
+      Vek3::zero(),
+      Vek3::unit_y(),
+    );
 
     let light_projection = Mat4::orthographic_rh_no(FrustumPlanes {
       left: -parameters.light.diffuse.width,
@@ -368,11 +306,7 @@ where
     if parameters.light.diffuse.debug_shadows {
       self.debug_pass();
     } else {
-      self.display_pass(
-        &parameters,
-        &rotation,
-        &normal_matrix,
-      )
+      self.display_pass(&parameters, &rotation, &normal_matrix)
     }
   }
 }

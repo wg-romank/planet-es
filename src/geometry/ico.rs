@@ -5,13 +5,13 @@ use crate::log;
 
 use crate::{
   parameters::RenderParameters,
-  shaders::{ObjVertex, VertexElevation, VertexIndex, VertexNormal, VertexPosition},
+  shaders::attributes::{PlanetVertex, VertexElevation, VertexIndex, VertexNormal, VertexPosition},
 };
 
 use crate::geometry::util::Mesh;
 
 pub struct IcoPlanet {
-  pub vertices: Vec<ObjVertex>,
+  pub vertices: Vec<PlanetVertex>,
   pub indices: Vec<VertexIndex>,
 }
 
@@ -51,7 +51,7 @@ impl IcoPlanet {
       .zip(hs.iter())
       .map(|((p, n), e)| {
         let elevation_normalized = (*e - min_height) / (max_height - min_height);
-        ObjVertex::new(
+        PlanetVertex::new(
           VertexPosition::new([p.0.x, p.0.y, p.0.z]),
           VertexNormal::new([n.0.x, n.0.y, n.0.z]),
           VertexElevation::new(elevation_normalized),
@@ -70,7 +70,7 @@ impl IcoPlanet {
 }
 
 impl Mesh for IcoPlanet {
-  fn vertices(&self) -> &[ObjVertex] {
+  fn vertices(&self) -> &[PlanetVertex] {
     &self.vertices
   }
 

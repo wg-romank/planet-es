@@ -1,16 +1,16 @@
 use luminance::{tess::{TessError, Mode}, context::GraphicsContext};
 use luminance_front::{tess::Tess, Backend};
 
-use crate::shaders::{ObjVertex, VertexIndex};
+use crate::shaders::attributes::{PlanetVertex, VertexIndex};
 
 pub trait Mesh: Sized {
-  fn vertices(&self) -> &[ObjVertex];
+  fn vertices(&self) -> &[PlanetVertex];
   fn indices(&self) -> &[VertexIndex];
 
   fn to_tess(
     &self,
     surface: &mut impl GraphicsContext<Backend = Backend>,
-  ) -> Result<Tess<ObjVertex, u32>, TessError> {
+  ) -> Result<Tess<PlanetVertex, u32>, TessError> {
     surface
       .new_tess()
       .set_mode(Mode::Triangle)

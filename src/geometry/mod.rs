@@ -2,9 +2,9 @@ use luminance::tess::Mode;
 use luminance::{context::GraphicsContext, tess::TessError};
 use luminance_front::{tess::Tess, Backend};
 
-use crate::shaders::QuadPosition;
-use crate::shaders::QuadUv;
-use crate::shaders::QuadVertex;
+use crate::shaders::attributes::QuadPosition;
+use crate::shaders::attributes::QuadUv;
+use crate::shaders::attributes::QuadVertex;
 
 pub mod naive;
 pub mod util;

@@ -1,9 +1,8 @@
 
-use crate::shaders::ObjVertex;
-// use crate::shaders::VertexColor;
-use crate::shaders::VertexIndex;
-use crate::shaders::VertexNormal;
-use crate::shaders::VertexPosition;
+use crate::shaders::attributes::PlanetVertex;
+use crate::shaders::attributes::VertexIndex;
+use crate::shaders::attributes::VertexNormal;
+use crate::shaders::attributes::VertexPosition;
 
 use crate::parameters::RenderParameters;
 use crate::geometry::util::Mesh;
@@ -165,7 +164,7 @@ impl Direction {
 }
 
 pub struct Planet {
-  pub vertices: Vec<ObjVertex>,
+  pub vertices: Vec<PlanetVertex>,
   pub indices: Vec<VertexIndex>,
 }
 
@@ -281,7 +280,7 @@ impl Planet {
       .zip(normals.into_iter())
       .zip(uvs.into_iter())
       .map(|((v, n), u)| {
-        ObjVertex::new(
+        PlanetVertex::new(
           VertexPosition::new(v.into_array()),
           VertexNormal::new(n.into_array()),
           todo!(),
@@ -321,7 +320,7 @@ impl Planet {
 }
 
 impl Mesh for Planet {
-  fn vertices(&self) -> &[ObjVertex] {
+  fn vertices(&self) -> &[PlanetVertex] {
     &self.vertices
   }
 
