@@ -23,10 +23,6 @@ mod webapp {
 
   #[wasm_bindgen]
   impl WebApp {
-    pub fn parameters(&self) -> String {
-      serde_json::to_string(&self.parameters).unwrap()
-    }
-
     pub fn from(canvas_name: &str, parameters: &str) -> WebApp {
       console_error_panic_hook::set_once();
 
@@ -37,6 +33,10 @@ mod webapp {
       let render = Render::from(surface, &parameters, fb);
 
       WebApp { render, parameters }
+    }
+
+    pub fn parameters(&self) -> String {
+      serde_json::to_string(&self.parameters).unwrap()
     }
 
     pub fn frame(&mut self, elapsed: f32, parameters: &str) {

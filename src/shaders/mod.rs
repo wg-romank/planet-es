@@ -213,8 +213,9 @@ where
               iface.set(&uni.light_model, *light_model);
 
               iface.set(&uni.shadow_map, sh_m.binding());
-              iface.set(&uni.mode, parameters.mode.in_shader());
               iface.set(&uni.height_map, hi_m.binding());
+
+              iface.set(&uni.mode, parameters.mode.in_shader());
 
               tess_gate.render(planet)
             })
