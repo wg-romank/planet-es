@@ -20,7 +20,7 @@ use vek::{FrustumPlanes, Mat4, Vec3 as Vek3};
 use crate::geometry::ico::IcoPlanet;
 use crate::geometry::mk_quad;
 use crate::geometry::util::Mesh;
-use crate::parameters::RenderParameters;
+use crate::parameters::{RenderParameters, self};
 
 use crate::log;
 
@@ -82,17 +82,11 @@ struct ShaderInterface {
   #[uniform(name = "lightPosition", unbound)]
   light_position: Uniform<Vec3<f32>>,
 
-  #[uniform(name = "projection", unbound)]
-  projection: Uniform<Mat44<f32>>,
+  #[uniform(name = "model", unbound)]
+  model: Uniform<Mat44<f32>>,
 
-  #[uniform(name = "light_projection", unbound)]
-  light_projection: Uniform<Mat44<f32>>,
-
-  #[uniform(unbound)]
-  view: Uniform<Mat44<f32>>,
-
-  #[uniform(unbound)]
-  light_view: Uniform<Mat44<f32>>,
+  #[uniform(name = "light_model", unbound)]
+  light_model: Uniform<Mat44<f32>>,
 
   #[uniform(unbound)]
   shadow_map: Uniform<TextureBinding<Dim2, Floating>>,
@@ -102,9 +96,6 @@ struct ShaderInterface {
 
   #[uniform(unbound)]
   mode: Uniform<f32>,
-
-  #[uniform(unbound)]
-  radius: Uniform<f32>,
 }
 
 #[derive(Debug, UniformInterface)]
@@ -112,11 +103,8 @@ struct ShadowShaderInterface {
   #[uniform(name = "rotation", unbound)]
   rotation: Uniform<Mat44<f32>>,
 
-  #[uniform(name = "projection", unbound)]
-  projection: Uniform<Mat44<f32>>,
-
-  #[uniform(unbound)]
-  light_view: Uniform<Mat44<f32>>,
+  #[uniform(name = "light_model", unbound)]
+  light_model: Uniform<Mat44<f32>>,
 }
 
 #[derive(Debug, UniformInterface)]
@@ -136,6 +124,8 @@ pub struct Render<C> {
   shadow_fb: Framebuffer<Dim2, RGBA32F, Depth32F>,
   output_fb: Framebuffer<Dim2, (), ()>,
   height_map: Texture<Dim2, RGBA32F>,
+  model: Mat44<f32>,
+  light_model: Mat44<f32>,
 }
 
 impl<C> Render<C>
@@ -200,6 +190,8 @@ where
       shadow_fb,
       output_fb,
       height_map,
+      model: Self::compute_model(&parameters),
+      light_model: Self::compute_light_model(&parameters),
     }
   }
 
@@ -214,13 +206,17 @@ where
       texels: &parameters.texture_parameters.to_bytes(),
       mipmaps: 0,
     }).expect("failed to create height map");
+
+    self.model = Self::compute_model(parameters);
+    self.light_model = Self::compute_light_model(parameters);
   }
 
-  fn shadow_pass(&mut self, rotation: &Mat4<f32>, projection: &Mat4<f32>, light_view: &Mat4<f32>) {
+  fn shadow_pass(&mut self, rotation: &Mat4<f32>) {
     let ctxt = &mut self.ctxt;
     let shadow_program = &mut self.shadow_program;
     let shadow_map = &mut self.shadow_fb;
     let planet = &self.planet;
+    let light_model = &self.light_model;
 
     let shadow_render = ctxt
       .new_pipeline_gate()
@@ -228,8 +224,7 @@ where
         shd_gate.shade(shadow_program, |mut iface, uni, mut rdr_gate| {
           rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             iface.set(&uni.rotation, rotation.into_col_arrays().into());
-            iface.set(&uni.projection, projection.into_col_arrays().into());
-            iface.set(&uni.light_view, light_view.into_col_arrays().into());
+            iface.set(&uni.light_model, *light_model);
 
             tess_gate.render(planet)
           })
@@ -246,11 +241,7 @@ where
     &mut self,
     parameters: &RenderParameters,
     rotation: &Mat4<f32>,
-    projection: &Mat4<f32>,
-    light_projection: &Mat4<f32>,
     normal_matrix: &Mat4<f32>,
-    view: &Mat4<f32>,
-    light_view: &Mat4<f32>,
   ) {
     let ctxt = &mut self.ctxt;
     let program = &mut self.program;
@@ -258,7 +249,8 @@ where
     let height_map = &mut self.height_map;
     let back_buffer = &self.output_fb;
     let planet = &self.planet;
-    let radius = parameters.radius;
+    let light_model = &self.light_model;
+    let model = &self.model;
 
     let render = ctxt
       .new_pipeline_gate()
@@ -282,19 +274,12 @@ where
                 parameters.light.diffuse.position.into_array().into(),
               );
 
-              iface.set(&uni.view, view.into_col_arrays().into());
-              iface.set(&uni.projection, projection.into_col_arrays().into());
-              iface.set(
-                &uni.light_projection,
-                light_projection.into_col_arrays().into(),
-              );
+              iface.set(&uni.model, *model);
+              iface.set(&uni.light_model, *light_model);
 
-              iface.set(&uni.light_view, light_view.into_col_arrays().into());
               iface.set(&uni.shadow_map, sh_m.binding());
               iface.set(&uni.mode, parameters.mode.in_shader());
               iface.set(&uni.height_map, hi_m.binding());
-
-              iface.set(&uni.radius, radius);
 
               tess_gate.render(planet)
             })
@@ -341,7 +326,7 @@ where
     }
   }
 
-  pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
+  pub fn compute_model(parameters: &RenderParameters) -> Mat44<f32> {
     let projection = Mat4::perspective_fov_rh_no(
       parameters.fov / 180. * std::f32::consts::PI,
       400.,
@@ -350,11 +335,12 @@ where
       10.,
     );
 
-    let rotation = vek::mat4::Mat4::identity()
-      .rotated_y(elapsed * parameters.rotate_y_speed)
-      .rotated_x(elapsed * parameters.rotate_x_speed);
-
     let view: Mat4<f32> = Mat4::look_at_rh(Vek3::new(2., 0., 0.), Vek3::zero(), Vek3::unit_y());
+
+    (projection * view).into_col_arrays().into()
+  }
+
+  pub fn compute_light_model(parameters: &RenderParameters) -> Mat44<f32> {
     let light_view: Mat4<f32> =
       Mat4::look_at_rh(parameters.light.diffuse.position, Vek3::zero(), Vek3::unit_y());
 
@@ -367,7 +353,15 @@ where
       far: parameters.light.diffuse.far_clip,
     });
 
-    self.shadow_pass(&rotation, &light_projection, &light_view);
+    (light_projection * light_view).into_col_arrays().into()
+  }
+
+  pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
+    let rotation = vek::mat4::Mat4::identity()
+      .rotated_y(elapsed * parameters.rotate_y_speed)
+      .rotated_x(elapsed * parameters.rotate_x_speed);
+
+    self.shadow_pass(&rotation);
 
     let normal_matrix = rotation.clone().inverted().transposed();
 
@@ -377,11 +371,7 @@ where
       self.display_pass(
         &parameters,
         &rotation,
-        &projection,
-        &light_projection,
         &normal_matrix,
-        &view,
-        &light_view,
       )
     }
   }
