@@ -9,10 +9,12 @@ mod webapp {
   use crate::parameters::RenderParameters;
   use crate::shaders::Render;
   use crate::geometry::util::Mesh;
+  use base64::decode;
 
   use console_error_panic_hook;
 
-  use luminance_web_sys::WebSysWebGL2Surface;
+  use image::{load_from_memory, ImageFormat};
+use luminance_web_sys::WebSysWebGL2Surface;
   use wasm_bindgen::prelude::*;
 
   #[wasm_bindgen]
@@ -47,6 +49,24 @@ mod webapp {
       }
 
       self.render.frame(elapsed, &self.parameters);
+    }
+
+    pub fn load_texture(&mut self, name: &str, encoded: &str) {
+      let mut split = encoded.split(",");
+      let format = split.next().unwrap();
+      let data = split.next().unwrap();
+
+      use crate::log;
+      use image::load_from_memory_with_format;
+
+      log!("name {}", name);
+      log!("format {}", format);
+      let data_binary = decode(data);
+      log!("decoded {:?}", data_binary);
+      let img = load_from_memory_with_format(&data_binary.unwrap(), ImageFormat::Png);
+      log!("img {:?}", img);
+
+      self.render.update_texture(img.unwrap());
     }
 
     pub fn export_to_obj(&self) -> String {

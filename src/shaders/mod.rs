@@ -1,6 +1,7 @@
 pub mod attributes;
 pub mod uniforms;
 
+use image::{DynamicImage, EncodableLayout, GenericImageView, RgbImage};
 use luminance::pipeline::PipelineState;
 use luminance::pixel::{Depth32F, RGBA32F};
 use luminance::render_state::RenderState;
@@ -21,7 +22,9 @@ use crate::geometry::mk_quad;
 use crate::geometry::util::Mesh;
 use crate::parameters::RenderParameters;
 
-use crate::shaders::attributes::{PlanetVertex, PlanetVertexSemantics, QuadVertex, QuadVertexSemantics};
+use crate::shaders::attributes::{
+  PlanetVertex, PlanetVertexSemantics, QuadVertex, QuadVertexSemantics,
+};
 use crate::shaders::uniforms::{DebugShaderInterface, ShaderInterface, ShadowShaderInterface};
 
 use crate::log;
@@ -130,20 +133,44 @@ where
       .to_tess(&mut self.ctxt)
       .expect("failed to create planet");
 
-    self.height_map = self
-      .ctxt
-      .new_texture::<Dim2, RGBA32F>(
-        [100, 1],
-        Sampler::default(),
-        TexelUpload::BaseLevel {
-          texels: &parameters.texture_parameters.to_bytes(),
-          mipmaps: 0,
-        },
-      )
-      .expect("failed to create height map");
+    // self.height_map = self
+    //   .ctxt
+    //   .new_texture::<Dim2, RGBA32F>(
+    //     [100, 1],
+    //     Sampler::default(),
+    //     TexelUpload::BaseLevel {
+    //       texels: &parameters.texture_parameters.to_bytes(),
+    //       mipmaps: 0,
+    //     },
+    //   )
+    //   .expect("failed to create height map");
+    // self.update_texture()
 
     self.model = Self::compute_model(parameters);
     self.light_model = Self::compute_light_model(parameters);
+  }
+
+  pub fn update_texture(&mut self, texture: DynamicImage) {
+    let (width, height) = texture.dimensions();
+    // todo: pret
+    let texels = texture
+      .as_rgb8()
+      .map(|img| {
+        img
+          .as_raw()
+          .chunks(3)
+          .map(|c| [c[0] as f32 / 255., c[1] as f32 / 255., c[2] as f32 / 255., 1. as f32])
+          .collect::<Vec<[f32; 4]>>()
+      })
+      .unwrap();
+    self.height_map = self
+      .ctxt
+      .new_texture::<Dim2, RGBA32F>(
+        [width, height],
+        Sampler::default(),
+        TexelUpload::base_level(&texels, 0),
+      )
+      .expect("failed to load texture");
   }
 
   fn shadow_pass(&mut self, rotation: &Mat4<f32>) {

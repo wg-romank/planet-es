@@ -188,6 +188,12 @@ const addHeight = (parent, heightParameters) => {
 
 parameters.texture_parameters.heights.forEach(h => addHeight(textureParameters, h))
 
+textureParameters.add('button', {name: 'Load texture'}).onChange(() => {
+  UIL.Files.load({ callback: (data, name) => {
+    r.load_texture(name, data);
+  }})
+})
+
 ui.add('button', {name: 'Add Height'}).onChange(() => {
   let params = JSON.parse(fl.TextureHeightParameters.generate())
   parameters.texture_parameters.heights.push(params)
