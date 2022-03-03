@@ -300,6 +300,9 @@ where
               iface.set(&uni.scale, parameters.scale);
               iface.set(&uni.sharpness, parameters.sharpness);
 
+              iface.set(&uni.ambient, parameters.light.ambient);
+              iface.set(&uni.diffuse_intensity, parameters.light.diffuse.intensity);
+
               tess_gate.render(planet)
             })
           })

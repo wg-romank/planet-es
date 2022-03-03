@@ -49,6 +49,12 @@ pub struct ShaderInterface {
 
   #[uniform(unbound)]
   pub sharpness: Uniform<f32>,
+
+  #[uniform(unbound)]
+  pub ambient: Uniform<f32>,
+
+  #[uniform(unbound)]
+  pub diffuse_intensity: Uniform<f32>,
 }
 
 #[derive(Debug, UniformInterface)]

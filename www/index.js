@@ -101,7 +101,15 @@ ui.add('slide', { name: 'Rotate Y', value: parameters.rotate_y_speed, min: 0, ma
 
 let light = ui.add('group', { name: 'Light'})
 
+light.add('slide', { name: 'Ambient', value: parameters.light.ambient, min: 0, max: 1, step: 0.01}).onChange(a => {
+  parameters.light.ambient = a
+})
+
 let diffuse = light.add('group', { name: 'Diffuse' })
+
+diffuse.add('slide', { name: 'Intensity', value: parameters.light.diffuse.intensity, min: 0, max: 2, step: 0.01}).onChange(i => {
+  parameters.light.diffuse.intensity = i
+})
 
 diffuse.add('slide', { name: 'Width', value: parameters.light.diffuse.width, min: 0, max: 10, step: 0.01}).onChange(w => {
   parameters.light.diffuse.width = w
