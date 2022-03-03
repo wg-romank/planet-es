@@ -1,17 +1,49 @@
 precision highp float;
 
+in vec3 v_pos_orig;
 in vec3 v_pos;
 in vec3 v_norm;
 in vec4 v_frag_pos_light_space;
 in float v_elev;
 
+uniform vec3 blend;
 uniform mat4 normalMatrix;
 uniform vec3 lightPosition;
 uniform sampler2D shadow_map;
 uniform sampler2D height_map;
+uniform mat4 model;
 uniform float mode;
+uniform float sharpness;
+uniform float scale;
+uniform sampler2D waves_1;
+uniform sampler2D waves_2;
 
 out vec4 frag_color;
+
+vec3 triplanar(sampler2D t, vec3 norm, vec3 pos) {
+  vec3 normalX = texture(t, scale * pos.zy).xyz;
+  vec3 normalY = texture(t, scale * pos.xz).xyz;
+  vec3 normalZ = texture(t, scale * pos.xy).xyz;
+
+  // vec3 normalSign = sign(norm);
+
+  vec3 blend = pow(abs(norm), vec3(sharpness));
+  blend /= dot(blend, vec3(1.));
+
+  // return normalize(
+  //   normalX * blendWeight.x + normalY * blendWeight.y + normalZ * blendWeight.z
+  // );
+
+  normalX = vec3(normalX.xy + norm.zy, normalX.z * norm.x);
+  normalY = vec3(normalY.xy + norm.xz, normalY.z * norm.y);
+  normalZ = vec3(normalZ.xy + norm.xy, normalZ.z * norm.z);
+
+  return normalize(
+    normalX.zyx * blend.x +
+    normalY.xzy * blend.y +
+    normalZ.xyz * blend.z
+  );
+}
 
 float shadow_calc(float dot_ligth_normal) {
   // [-1, 1] => [0, 1]
@@ -43,7 +75,9 @@ vec4 color_calc() {
 
 void main() {
   vec4 color = color_calc();
-  vec3 norm_transformed = (normalMatrix * vec4(v_norm, 0.)).xyz;
+  vec3 trip_normal = triplanar(waves_1, v_norm, v_pos_orig);
+  vec3 norm_transformed = (normalMatrix * vec4(trip_normal, 0.)).xyz;
+
   //ambient
   vec3 ambient = 0.3 * color.xyz;
 
@@ -67,7 +101,7 @@ void main() {
   }
 
   if (mode == 1.) {
-    frag_color = color;
+    frag_color = vec4(trip_normal, 1.);
   }
 
   if (mode == 2.) {

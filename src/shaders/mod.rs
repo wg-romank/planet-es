@@ -1,12 +1,12 @@
 pub mod attributes;
 pub mod uniforms;
 
-use image::{DynamicImage, EncodableLayout, GenericImageView, RgbImage};
+use image::{DynamicImage, EncodableLayout, GenericImageView, RgbImage, ImageFormat};
 use luminance::pipeline::PipelineState;
-use luminance::pixel::{Depth32F, RGBA32F};
+use luminance::pixel::{Depth32F, RGBA32F, RGB16I};
 use luminance::render_state::RenderState;
 use luminance::shader::types::Mat44;
-use luminance::texture::{Dim2, MagFilter, MinFilter, Sampler, TexelUpload};
+use luminance::texture::{Dim2, MagFilter, MinFilter, Sampler, TexelUpload, Wrap};
 
 use luminance_front::context::GraphicsContext;
 use luminance_front::framebuffer::Framebuffer;
@@ -38,6 +38,42 @@ const SHADOW_FS_STR: &str = include_str!("../../shaders/shadow_fs.glsl");
 const DEBUG_VS_STR: &str = include_str!("../../shaders/debug_vs.glsl");
 const DEBUG_FS_STR: &str = include_str!("../../shaders/debug_shadows_fs.glsl");
 
+const WAVES_1: &[u8; 355381] = include_bytes!("../../assets/water3.png");
+
+pub fn to_png_texture<C>(ctxt: &mut C, bytes: &[u8]) -> Texture<Dim2, RGBA32F> where
+  C: GraphicsContext<Backend = Backend> {
+  use image::load_from_memory_with_format;
+  let texture = load_from_memory_with_format(bytes, ImageFormat::Png).expect("failed to parse to png");
+
+  log!("texture {:?}", texture);
+
+  let (width, height) = texture.dimensions();
+  // todo: pret
+  let texels = texture
+    .as_rgb8()
+    .map(|img| {
+      img
+        .as_raw()
+        .chunks(3)
+        .map(|c| [c[0] as f32 / 255., c[1] as f32 / 255., c[2] as f32 / 255., 1. as f32])
+        .collect::<Vec<[f32; 4]>>()
+    })
+    .unwrap();
+
+  let mut sampler = Sampler::default();
+  sampler.wrap_r = Wrap::Repeat;
+  sampler.wrap_s = Wrap::Repeat;
+  sampler.wrap_t = Wrap::Repeat;
+
+  ctxt
+    .new_texture::<Dim2, RGBA32F>(
+      [width, height],
+      sampler,
+      TexelUpload::base_level(&texels, 0),
+    )
+    .expect("failed to load texture")
+}
+
 pub struct Render<C> {
   pub ctxt: C,
   pub planet_mesh: IcoPlanet,
@@ -49,6 +85,8 @@ pub struct Render<C> {
   shadow_fb: Framebuffer<Dim2, RGBA32F, Depth32F>,
   output_fb: Framebuffer<Dim2, (), ()>,
   height_map: Texture<Dim2, RGBA32F>,
+  waves_texture1: Texture<Dim2, RGBA32F>,
+  // waves_texture2: Texture<Dim2, RGBA32F>,
   model: Mat44<f32>,
   light_model: Mat44<f32>,
 }
@@ -110,6 +148,9 @@ where
 
     let quad = mk_quad(&mut ctxt).expect("failed to make quad");
 
+    let waves_texture1 = to_png_texture(&mut ctxt, WAVES_1);
+    // let waves_texture2 = to_png_texture(&mut ctxt, WAVES_2);
+
     Render {
       ctxt,
       planet_mesh,
@@ -121,6 +162,8 @@ where
       shadow_fb,
       output_fb,
       height_map,
+      waves_texture1,
+      // waves_texture2,
       model: Self::compute_model(&parameters),
       light_model: Self::compute_light_model(&parameters),
     }
@@ -213,6 +256,8 @@ where
     let planet = &self.planet;
     let light_model = &self.light_model;
     let model = &self.model;
+    let waves_1 = &mut self.waves_texture1;
+    // let waves_2 = &mut self.waves_texture2;
 
     let render = ctxt
       .new_pipeline_gate()
@@ -226,6 +271,12 @@ where
           let hi_m = pipeline
             .bind_texture(height_map)
             .expect("failed to bind height map");
+          let w1 = pipeline
+            .bind_texture(waves_1)
+            .expect("failed to bind waves1");
+          // let w2 = pipeline
+          //   .bind_texture(waves_2)
+          //   .expect("failed to bind waves1");
 
           shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
@@ -243,6 +294,11 @@ where
               iface.set(&uni.height_map, hi_m.binding());
 
               iface.set(&uni.mode, parameters.mode.in_shader());
+
+              iface.set(&uni.waves_1, w1.binding());
+
+              iface.set(&uni.scale, parameters.scale);
+              iface.set(&uni.sharpness, parameters.sharpness);
 
               tess_gate.render(planet)
             })

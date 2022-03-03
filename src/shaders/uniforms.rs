@@ -34,6 +34,21 @@ pub struct ShaderInterface {
 
   #[uniform(unbound)]
   pub mode: Uniform<f32>,
+
+  #[uniform(unbound)]
+  pub waves_1: Uniform<TextureBinding<Dim2, Floating>>,
+
+  #[uniform(unbound)]
+  pub waves_2: Uniform<TextureBinding<Dim2, Floating>>,
+
+  #[uniform(unbound)]
+  pub blend: Uniform<Vec3<f32>>,
+
+  #[uniform(unbound)]
+  pub scale: Uniform<f32>,
+
+  #[uniform(unbound)]
+  pub sharpness: Uniform<f32>,
 }
 
 #[derive(Debug, UniformInterface)]

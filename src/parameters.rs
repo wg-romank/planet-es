@@ -61,6 +61,8 @@ impl LightingParameters {
 pub struct RenderParameters {
   pub mode: RenderMode,
   pub fov: f32,
+  pub scale: f32,
+  pub sharpness: f32,
   pub light: LightingParameters,
   pub rotate_x_speed: f32,
   pub rotate_y_speed: f32,
@@ -75,6 +77,8 @@ impl RenderParameters {
     Self {
       mode: RenderMode::Display,
       fov: 45.,
+      scale: 1.,
+      sharpness: 1.,
       light: LightingParameters::new(),
       rotate_x_speed: 0.,
       rotate_y_speed: 0.6,
@@ -151,7 +155,8 @@ impl MeshParameters {
     Self {
       frequency: 0.5,
       use_first_layer_as_mask: false,
-      filters: vec![MeshFilterParameters::default()],
+      // filters: vec![MeshFilterParameters::default()],
+      filters: vec![],
     }
   }
 

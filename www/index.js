@@ -48,18 +48,18 @@ const hex2rgb = (hex) => {
   return [red, green, blue];
 }
 
-const addVectorGroup = (parent, params, name) => {
+const addVectorGroup = (parent, params, name, min, max) => {
   let g = parent.add('group', {name: name })
 
-  g.add('slide', {name: 'Center X', value: params.x, min: -10, max: 10, step: 0.01}).onChange(x => {
+  g.add('slide', {name: 'Center X', value: params.x, min: min, max: max, step: 0.01}).onChange(x => {
     params.x = x
   })
 
-  g.add('slide', {name: 'Center Y', value: params.y, min: -10, max: 10, step: 0.01}).onChange(y => {
+  g.add('slide', {name: 'Center Y', value: params.y, min: min, max: max, step: 0.01}).onChange(y => {
     params.y = y
   })
 
-  g.add('slide', {name: 'Center Z', value: params.z, min: -10, max: 10, step: 0.01}).onChange(z => {
+  g.add('slide', {name: 'Center Z', value: params.z, min: min, max: max, step: 0.01}).onChange(z => {
     params.z = z
   })
 }
@@ -81,6 +81,14 @@ ui.add('list', {name: 'Mode', list: ['Normals', 'Uvs', 'Display'], value: parame
 
 ui.add('slide', { name: 'FOV', value: parameters.fov, min: 45, max: 180, step: 1}).onChange(fov => {
   parameters.fov = fov
+})
+
+ui.add('slide', { name: 'Scale', value: parameters.scale, min: 0, max: 10, step: 0.01}).onChange(s => {
+  parameters.scale = s
+})
+
+ui.add('slide', { name: 'Sharpness', value: parameters.sharpness, min: 0, max: 10, step: 0.01}).onChange(s => {
+  parameters.sharpness = s
 })
 
 ui.add('slide', { name: 'Rotate X', value: parameters.rotate_x_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
@@ -111,7 +119,7 @@ diffuse.add('bool', { name: 'Debug shadows', value: parameters.light.diffuse.deb
   parameters.light.diffuse.debug_shadows = d
 })
 
-addVectorGroup(diffuse, parameters.light.diffuse.position, 'Position')
+addVectorGroup(diffuse, parameters.light.diffuse.position, 'Position', -10, 10)
 
 light.open();
 
@@ -136,7 +144,7 @@ const addFilter = (parent, filterParameters) => {
     filterParameters.min_value = t
   })
 
-  addVectorGroup(filter, filterParameters.center, 'Center')
+  addVectorGroup(filter, filterParameters.center, 'Center', -10, 10)
 
   filter.add('bool', { name: 'Enabled', value: filterParameters.enabled }).onChange(en => {
     filterParameters.enabled = en
