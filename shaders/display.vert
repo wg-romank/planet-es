@@ -1,18 +1,18 @@
 precision highp float;
 
-in vec3 position;
-in vec3 norm;
-in float elevation;
+attribute vec3 position;
+attribute vec3 norm;
+attribute float elevation;
 
 uniform mat4 rotation;
 uniform mat4 model;
 uniform mat4 light_model;
 
-out vec3 v_pos_orig;
-out vec3 v_pos;
-out vec3 v_norm;
-out vec4 v_frag_pos_light_space;
-out float v_elev;
+varying vec3 v_pos_orig;
+varying vec3 v_pos;
+varying vec3 v_norm;
+varying vec4 v_frag_pos_light_space;
+varying float v_elev;
 
 void main() {
   vec4 vertex_position = rotation * vec4(position, 1.);

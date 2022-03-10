@@ -1,4 +1,6 @@
-in vec3 position;
+precision highp float;
+
+attribute vec3 position;
 
 uniform mat4 rotation;
 uniform mat4 light_model;

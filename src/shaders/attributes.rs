@@ -1,40 +1,29 @@
+use vek::Vec3 as Vek3;
+use vek::Vec2 as Vek2;
 
-use luminance_derive::{Semantics, Vertex};
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
-pub enum PlanetVertexSemantics {
-  #[sem(name = "position", repr = "[f32; 3]", wrapper = "VertexPosition")]
-  Position,
-
-  #[sem(name = "norm", repr = "[f32; 3]", wrapper = "VertexNormal")]
-  Normal,
-
-  #[sem(name = "elevation", repr = "f32", wrapper = "VertexElevation")]
-  Elevation,
-}
-
-#[derive(Clone, Copy, Debug, Vertex)]
-#[vertex(sem = "PlanetVertexSemantics")]
+#[derive(Clone, Copy, Debug)]
 pub struct PlanetVertex {
-  pub position: VertexPosition,
-  pub norm: VertexNormal,
-  pub elevation: VertexElevation,
+  pub position: Vek3<f32>,
+  pub norm: Vek3<f32>,
+  pub elevation: f32,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Semantics)]
-pub enum QuadVertexSemantics {
-  #[sem(name = "position", repr = "[f32; 2]", wrapper = "QuadPosition")]
-  Position,
-
-  #[sem(name = "uv", repr = "[f32; 2]", wrapper = "QuadUv")]
-  Uv,
+impl PlanetVertex {
+  pub fn new(position: Vek3<f32>, norm: Vek3<f32>, elevation: f32) -> Self {
+    Self { position, norm, elevation }
+  }
 }
 
-#[derive(Clone, Copy, Debug, Vertex)]
-#[vertex(sem = "QuadVertexSemantics")]
+#[derive(Clone, Copy, Debug)]
 pub struct QuadVertex {
-  pub position: QuadPosition,
-  pub uv: QuadUv,
+  pub position: Vek2<f32>,
+  pub uv: Vek2<f32>,
 }
 
-pub type VertexIndex = u32;
+impl QuadVertex {
+  pub fn new(position: Vek2<f32>, uv: Vek2<f32>) -> Self {
+    Self { position, uv }
+  }
+}
+
+pub type VertexIndex = u16;

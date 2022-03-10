@@ -1,14 +1,14 @@
 use bracket_noise::prelude::FastNoise;
 use icosahedron::Polyhedron;
 
-use crate::log;
-
 use crate::{
   parameters::RenderParameters,
-  shaders::attributes::{PlanetVertex, VertexElevation, VertexIndex, VertexNormal, VertexPosition},
+  shaders::attributes::{PlanetVertex, VertexIndex},
 };
 
-use crate::geometry::util::Mesh;
+use crate::geometry::util::Wavefront;
+
+use vek::Vec3 as Vek3;
 
 pub struct IcoPlanet {
   pub vertices: Vec<PlanetVertex>,
@@ -52,9 +52,9 @@ impl IcoPlanet {
       .map(|((p, n), e)| {
         let elevation_normalized = (*e - min_height) / (max_height - min_height);
         PlanetVertex::new(
-          VertexPosition::new([p.0.x, p.0.y, p.0.z]),
-          VertexNormal::new([n.0.x, n.0.y, n.0.z]),
-          VertexElevation::new(elevation_normalized),
+          Vek3::new(p.0.x, p.0.y, p.0.z),
+          Vek3::new(n.0.x, n.0.y, n.0.z),
+          elevation_normalized,
         )
       })
       .collect();
@@ -62,14 +62,14 @@ impl IcoPlanet {
     let indices = ico
       .cells
       .iter()
-      .flat_map(|t| vec![t.a as u32, t.b as u32, t.c as u32])
+      .flat_map(|t| vec![t.a as VertexIndex, t.b as VertexIndex, t.c as VertexIndex])
       .collect();
 
     Self { vertices, indices }
   }
 }
 
-impl Mesh for IcoPlanet {
+impl Wavefront for IcoPlanet {
   fn vertices(&self) -> &[PlanetVertex] {
     &self.vertices
   }

@@ -1,11 +1,9 @@
 
 use crate::shaders::attributes::PlanetVertex;
 use crate::shaders::attributes::VertexIndex;
-use crate::shaders::attributes::VertexNormal;
-use crate::shaders::attributes::VertexPosition;
 
 use crate::parameters::RenderParameters;
-use crate::geometry::util::Mesh;
+use crate::geometry::util::Wavefront;
 
 use bracket_noise::prelude::FastNoise;
 use vek::Vec3 as Vek3;
@@ -49,14 +47,14 @@ impl Face {
         vertices.push(vertex);
 
         if x != res - 1 && y != res - 1 {
-          let i = (x + y * res) as u32;
+          let i = (x + y * res) as VertexIndex;
           indices.push(i);
-          indices.push(i + res as u32 + 1);
-          indices.push(i + res as u32);
+          indices.push(i + res as VertexIndex + 1);
+          indices.push(i + res as VertexIndex);
 
           indices.push(i);
           indices.push(i + 1);
-          indices.push(i + res as u32 + 1);
+          indices.push(i + res as VertexIndex + 1);
         }
         uvs.push((scale_x, scale_y));
       }
@@ -281,8 +279,8 @@ impl Planet {
       .zip(uvs.into_iter())
       .map(|((v, n), u)| {
         PlanetVertex::new(
-          VertexPosition::new(v.into_array()),
-          VertexNormal::new(n.into_array()),
+          v,
+          n,
           todo!(),
         )
       })
@@ -311,7 +309,7 @@ impl Planet {
         f.indices
           .iter()
           // right, up, forward, left, down, backward
-          .map(move |idx| *idx + (face_id * face_stride) as u32)
+          .map(move |idx| *idx + (face_id * face_stride) as VertexIndex)
       })
       .collect();
 
@@ -319,7 +317,7 @@ impl Planet {
   }
 }
 
-impl Mesh for Planet {
+impl Wavefront for Planet {
   fn vertices(&self) -> &[PlanetVertex] {
     &self.vertices
   }

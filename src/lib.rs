@@ -8,18 +8,18 @@ pub mod shaders;
 mod webapp {
   use crate::parameters::RenderParameters;
   use crate::shaders::Render;
-  use crate::geometry::util::Mesh;
+  use crate::geometry::util::Wavefront;
   use base64::decode;
 
   use console_error_panic_hook;
 
-  use image::{load_from_memory, ImageFormat};
-use luminance_web_sys::WebSysWebGL2Surface;
+  use glsmrs::Ctx;
+  use image::ImageFormat;
   use wasm_bindgen::prelude::*;
 
   #[wasm_bindgen]
   pub struct WebApp {
-    render: Render<WebSysWebGL2Surface>,
+    render: Render,
     parameters: RenderParameters,
   }
 
@@ -30,9 +30,9 @@ use luminance_web_sys::WebSysWebGL2Surface;
 
       let parameters: RenderParameters =
         serde_json::from_str(parameters).unwrap_or_else(|_| RenderParameters::new());
-      let mut surface = WebSysWebGL2Surface::new(canvas_name).expect("failed to create surface");
-      let fb = surface.back_buffer().expect("failed to get backbuffer");
-      let render = Render::from(surface, &parameters, fb);
+      let ctx = Ctx::from("florest-canvas").expect("failed to create context, no canvas?");
+
+      let render = Render::from(ctx, &parameters).expect("failed to create render");
 
       WebApp { render, parameters }
     }
@@ -62,11 +62,11 @@ use luminance_web_sys::WebSysWebGL2Surface;
       log!("name {}", name);
       log!("format {}", format);
       let data_binary = decode(data);
-      log!("decoded {:?}", data_binary);
+      // log!("decoded {:?}", data_binary);
       let img = load_from_memory_with_format(&data_binary.unwrap(), ImageFormat::Png);
-      log!("img {:?}", img);
+      // log!("img {:?}", img);
 
-      self.render.update_texture(img.unwrap());
+      self.render.update_texture(img.unwrap()).expect("failed to update texture")
     }
 
     pub fn export_to_obj(&self) -> String {

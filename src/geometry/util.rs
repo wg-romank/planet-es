@@ -1,22 +1,24 @@
-use luminance::{tess::{TessError, Mode}, context::GraphicsContext};
-use luminance_front::{tess::Tess, Backend};
+use glsmrs::{Ctx, mesh::Mesh, AttributeVector3, AttributeScalar};
 
 use crate::shaders::attributes::{PlanetVertex, VertexIndex};
 
-pub trait Mesh: Sized {
+pub trait Wavefront: Sized {
   fn vertices(&self) -> &[PlanetVertex];
   fn indices(&self) -> &[VertexIndex];
 
   fn to_tess(
     &self,
-    surface: &mut impl GraphicsContext<Backend = Backend>,
-  ) -> Result<Tess<PlanetVertex, u32>, TessError> {
-    surface
-      .new_tess()
-      .set_mode(Mode::Triangle)
-      .set_vertices(self.vertices())
-      .set_indices(self.indices())
-      .build()
+    ctx: &Ctx,
+  ) -> Result<Mesh, String> {
+
+    let positions = self.vertices().iter().map(|v| v.position.into_array()).collect::<Vec<[f32; 3]>>();
+    let norms = self.vertices().iter().map(|v| v.norm.into_array()).collect::<Vec<[f32; 3]>>();
+    let elevations = self.vertices().iter().map(|v| v.elevation).collect::<Vec<f32>>();
+
+    Mesh::new(&ctx, self.indices())?
+      .with_attribute::<AttributeVector3>("position", &positions)?
+      .with_attribute::<AttributeVector3>("norm", &norms)?
+      .with_attribute::<AttributeScalar>("elevation", &elevations)
   }
 
   fn to_obj(&self) -> String {
@@ -26,12 +28,12 @@ pub trait Mesh: Sized {
     self
       .vertices()
       .iter()
-      .map(|v| v.position.repr)
+      .map(|v| v.position)
       .for_each(|v| result.push_str(&format!("v {} {} {}\n", v[0], v[1], v[2])));
     self
       .vertices()
       .iter()
-      .map(|v| v.norm.repr)
+      .map(|v| v.norm)
       .for_each(|v| result.push_str(&format!("vn {} {} {}\n", v[0], v[1], v[2])));
 
     self.indices().chunks(3).for_each(|v| {
