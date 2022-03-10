@@ -30,7 +30,7 @@ mod webapp {
 
       let parameters: RenderParameters =
         serde_json::from_str(parameters).unwrap_or_else(|_| RenderParameters::new());
-      let ctx = Ctx::from("florest-canvas").expect("failed to create context, no canvas?");
+      let ctx = Ctx::from(canvas_name).expect("failed to create context, no canvas?");
 
       let render = Render::from(ctx, &parameters).expect("failed to create render");
 
