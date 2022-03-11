@@ -1,4 +1,4 @@
-use glsmrs::{Ctx, mesh::Mesh, AttributeVector2};
+use glsmrs::{Ctx, mesh::Mesh, attributes::AttributeVector2};
 
 use crate::shaders::attributes::QuadVertex;
 

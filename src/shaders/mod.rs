@@ -2,7 +2,6 @@ pub mod attributes;
 pub mod uniforms;
 
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use gl::Pipeline;
 use gl::Program;
@@ -16,7 +15,7 @@ use gl::texture::InterpolationMin;
 use gl::texture::Viewport;
 use gl::texture::WrapS;
 use gl::texture::WrapT;
-use gl::texture::{Framebuffer, UploadedTexture, TextureSpec, ColorFormat};
+use gl::texture::{Framebuffer, TextureHandle, TextureSpec, ColorFormat};
 use image::{DynamicImage, GenericImageView, ImageFormat};
 use vek::{FrustumPlanes, Mat4, Vec3 as Vek3};
 
@@ -40,7 +39,7 @@ const DEBUG_FS_STR: &str = include_str!("../../shaders/debug_shadows.frag");
 
 use glsmrs as gl;
 
-pub fn to_png_texture(ctx: &Ctx, bytes: &[u8]) -> Result<UploadedTexture, String> {
+pub fn to_png_texture(ctx: &Ctx, bytes: &[u8]) -> Result<TextureHandle, String> {
   let texture = image::load_from_memory_with_format(bytes, ImageFormat::Png)
     .map_err(|e| format!("{:?}", e))?;
 
@@ -66,9 +65,9 @@ pub struct Render {
   program: Program,
   shadow_program: Program,
   debug_program: Program,
-  shadow_fb: Framebuffer<(), Rc<UploadedTexture>>,
-  height_map: Rc<UploadedTexture>,
-  // waves_texture1: UploadedTexture,
+  shadow_fb: Framebuffer<(), TextureHandle>,
+  height_map: TextureHandle,
+  // waves_texture1: TextureHandle,
   // waves_texture2: Texture<Dim2, RGBA32F>,
   model: Mat4<f32>,
   light_model: Mat4<f32>,
@@ -85,7 +84,7 @@ impl Render {
 
     let shadow_texture_spec = TextureSpec::depth([800, 800]);
 
-    let shadow_texture = Rc::new(shadow_texture_spec.upload(&ctxt, InternalFormat(GL::UNSIGNED_INT), None)?);
+    let shadow_texture = shadow_texture_spec.upload(&ctxt, InternalFormat(GL::UNSIGNED_INT), None)?;
 
     let shadow_fb = Framebuffer::new(&ctxt, gl::texture::Viewport::new(800, 800))?
       .with_depth_slot(&ctxt, shadow_texture);
@@ -94,7 +93,7 @@ impl Render {
     height_map_spec.interpolation_min = InterpolationMin(GL::NEAREST);
     height_map_spec.interpolation_mag = InterpolationMag(GL::NEAREST);
 
-    let height_map = Rc::new(height_map_spec.upload_rgba(&ctxt, &parameters.texture_parameters.to_bytes())?);
+    let height_map = height_map_spec.upload_rgba(&ctxt, &parameters.texture_parameters.to_bytes())?;
 
     let planet_mesh = IcoPlanet::new(&parameters);
 
@@ -156,7 +155,7 @@ impl Render {
     let mut spec = TextureSpec::new(ColorFormat(GL::RGBA), [width, height]);
     spec.interpolation_min = InterpolationMin(GL::NEAREST);
     spec.interpolation_mag = InterpolationMag(GL::NEAREST);
-    self.height_map = Rc::new(spec.upload_rgba(&self.ctxt, &texels)?);
+    self.height_map = spec.upload_rgba(&self.ctxt, &texels)?;
 
     Ok(())
   }

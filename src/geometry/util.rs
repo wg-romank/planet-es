@@ -1,4 +1,4 @@
-use glsmrs::{Ctx, mesh::Mesh, AttributeVector3, AttributeScalar};
+use glsmrs::{Ctx, mesh::Mesh, attributes::{AttributeVector3, AttributeScalar}};
 
 use crate::shaders::attributes::{PlanetVertex, VertexIndex};
 
