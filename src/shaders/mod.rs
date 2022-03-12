@@ -9,13 +9,15 @@ use gl::GL;
 use gl::Ctx;
 use gl::UniformData;
 use gl::mesh::Mesh;
+use gl::texture::DepthFrameBuffer;
+use gl::texture::EmptyFramebuffer;
 use gl::texture::InternalFormat;
 use gl::texture::InterpolationMag;
 use gl::texture::InterpolationMin;
 use gl::texture::Viewport;
 use gl::texture::WrapS;
 use gl::texture::WrapT;
-use gl::texture::{Framebuffer, TextureHandle, TextureSpec, ColorFormat};
+use gl::texture::{Framebuffer, UploadedTexture, TextureSpec, ColorFormat};
 use image::{DynamicImage, GenericImageView, ImageFormat};
 use vek::{FrustumPlanes, Mat4, Vec3 as Vek3};
 
@@ -23,8 +25,6 @@ use crate::geometry::ico::IcoPlanet;
 use crate::geometry::mk_quad;
 use crate::geometry::util::Wavefront;
 use crate::parameters::RenderParameters;
-
-use crate::log;
 
 const VS_STR: &str = include_str!("../../shaders/display.vert");
 const FS_STR: &str = include_str!("../../shaders/display.frag");
@@ -39,7 +39,7 @@ const DEBUG_FS_STR: &str = include_str!("../../shaders/debug_shadows.frag");
 
 use glsmrs as gl;
 
-pub fn to_png_texture(ctx: &Ctx, bytes: &[u8]) -> Result<TextureHandle, String> {
+pub fn to_png_texture(ctx: &Ctx, bytes: &[u8]) -> Result<UploadedTexture, String> {
   let texture = image::load_from_memory_with_format(bytes, ImageFormat::Png)
     .map_err(|e| format!("{:?}", e))?;
 
@@ -65,8 +65,9 @@ pub struct Render {
   program: Program,
   shadow_program: Program,
   debug_program: Program,
-  shadow_fb: Framebuffer<(), TextureHandle>,
-  height_map: TextureHandle,
+  display_fb: EmptyFramebuffer,
+  shadow_fb: DepthFrameBuffer,
+  height_map: UploadedTexture,
   // waves_texture1: TextureHandle,
   // waves_texture2: Texture<Dim2, RGBA32F>,
   model: Mat4<f32>,
@@ -86,8 +87,10 @@ impl Render {
 
     let shadow_texture = shadow_texture_spec.upload(&ctxt, InternalFormat(GL::UNSIGNED_INT), None)?;
 
-    let shadow_fb = Framebuffer::new(&ctxt, gl::texture::Viewport::new(800, 800))?
-      .with_depth_slot(&ctxt, shadow_texture);
+    let display_fb = EmptyFramebuffer::new(&ctxt, Viewport::new(400, 400))?;
+
+    let shadow_fb = EmptyFramebuffer::new(&ctxt, gl::texture::Viewport::new(800, 800))?
+      .with_depth_slot(shadow_texture)?;
 
     let mut height_map_spec = TextureSpec::new(ColorFormat(GL::RGBA), [100, 1]);
     height_map_spec.interpolation_min = InterpolationMin(GL::NEAREST);
@@ -106,7 +109,7 @@ impl Render {
     // let waves_texture1 = to_png_texture(&mut ctxt, WAVES_1)?;
     // let waves_texture2 = to_png_texture(&mut ctxt, WAVES_2);
 
-    let pipeline = Pipeline::new(&ctxt, Viewport::new(400, 400));
+    let pipeline = Pipeline::new(&ctxt);
 
     Ok(Render {
       ctxt,
@@ -118,6 +121,7 @@ impl Render {
       shadow_program,
       debug_program,
       shadow_fb,
+      display_fb,
       height_map,
       // waves_texture1,
       // waves_texture2,
@@ -169,9 +173,9 @@ impl Render {
     self.pipeline.shade(
       &self.ctxt,
       &self.shadow_program,
-      &uni_values,
-      vec![&self.planet],
-      Some(&mut self.shadow_fb)
+      uni_values,
+      vec![&mut self.planet],
+      &mut self.shadow_fb
     ).expect("error shadow pass");
   }
 
@@ -190,7 +194,7 @@ impl Render {
       ("model", UniformData::Matrix4(self.model.into_col_array())),
       ("light_model", UniformData::Matrix4(self.light_model.into_col_array())),
       ("shadow_map", UniformData::Texture(self.shadow_fb.depth_slot())),
-      ("height_map", UniformData::Texture(self.height_map.clone())),
+      ("height_map", UniformData::Texture(&mut self.height_map)),
       ("mode", UniformData::Scalar(parameters.mode.in_shader())),
       // ("blend", UniformData::Vector3(paramters.blend)),
       ("scale", UniformData::Scalar(parameters.scale)),
@@ -199,12 +203,12 @@ impl Render {
       ("diffuse_intensity", UniformData::Scalar(parameters.light.diffuse.intensity)),
     ].into_iter().collect::<HashMap<_, _>>();
 
-    self.pipeline.shade::<(), ()>(
+    self.pipeline.shade(
       &self.ctxt,
       &self.program,
-      &uni_values,
-      vec![&self.planet],
-      None,
+      uni_values,
+      vec![&mut self.planet],
+      &mut self.display_fb,
     ).expect("error shadow pass");
 
   }
@@ -214,12 +218,12 @@ impl Render {
       ("depth_map", UniformData::Texture(self.shadow_fb.depth_slot())),
     ].into_iter().collect::<HashMap<_, _>>();
 
-    self.pipeline.shade::<(), ()>(
+    self.pipeline.shade(
       &self.ctxt,
       &self.debug_program,
-      &uni_values,
-      vec![&self.quad],
-      None,
+      uni_values,
+      vec![&mut self.quad],
+      &mut self.display_fb,
     ).expect("error debug pass");
   }
 
