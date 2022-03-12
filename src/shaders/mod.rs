@@ -87,9 +87,9 @@ impl Render {
 
     let shadow_texture = shadow_texture_spec.upload(&ctxt, InternalFormat(GL::UNSIGNED_INT), None)?;
 
-    let display_fb = EmptyFramebuffer::new(&ctxt, Viewport::new(400, 400))?;
+    let display_fb = EmptyFramebuffer::new(&ctxt, Viewport::new(400, 400));
 
-    let shadow_fb = EmptyFramebuffer::new(&ctxt, gl::texture::Viewport::new(800, 800))?
+    let shadow_fb = EmptyFramebuffer::new(&ctxt, gl::texture::Viewport::new(800, 800))
       .with_depth_slot(shadow_texture)?;
 
     let mut height_map_spec = TextureSpec::new(ColorFormat(GL::RGBA), [100, 1]);
@@ -171,7 +171,6 @@ impl Render {
     ].into_iter().collect::<HashMap<_, _>>();
 
     self.pipeline.shade(
-      &self.ctxt,
       &self.shadow_program,
       uni_values,
       vec![&mut self.planet],
@@ -204,7 +203,6 @@ impl Render {
     ].into_iter().collect::<HashMap<_, _>>();
 
     self.pipeline.shade(
-      &self.ctxt,
       &self.program,
       uni_values,
       vec![&mut self.planet],
@@ -219,7 +217,6 @@ impl Render {
     ].into_iter().collect::<HashMap<_, _>>();
 
     self.pipeline.shade(
-      &self.ctxt,
       &self.debug_program,
       uni_values,
       vec![&mut self.quad],

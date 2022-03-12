@@ -151,6 +151,9 @@
 /******/ 					"__wbg_deleteBuffer_c708688b9e1b3518": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_deleteBuffer_c708688b9e1b3518"](p0i32,p1i32);
 /******/ 					},
+/******/ 					"__wbg_deleteFramebuffer_ca006f8649d4550a": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_deleteFramebuffer_ca006f8649d4550a"](p0i32,p1i32);
+/******/ 					},
 /******/ 					"__wbg_deleteProgram_61cc7923289d1bbc": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_deleteProgram_61cc7923289d1bbc"](p0i32,p1i32);
 /******/ 					},
@@ -366,7 +369,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/florest_bg.wasm":"5529116adae8520ab321"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/florest_bg.wasm":"ea4fc211287cf9827425"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
