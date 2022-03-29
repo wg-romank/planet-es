@@ -40,7 +40,7 @@ impl IcoPlanet {
       let lat = f32::asin(p.0.y); // [-pi/2, pi/2]
       let lon = f32::atan2(p.0.x, -p.0.z); // [-pi, pi]
 
-      let u = (lon + pi) / (2. * pi);
+      let u = 1. - (lon + pi) / (2. * pi);
       let v = 1. - (lat + pi / 2.) / pi;
 
       uvs.push((u, v));
