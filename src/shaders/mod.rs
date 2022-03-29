@@ -96,7 +96,7 @@ impl Render {
     height_map_spec.interpolation_min = InterpolationMin(GL::NEAREST);
     height_map_spec.interpolation_mag = InterpolationMag(GL::NEAREST);
 
-    let height_map = height_map_spec.upload_rgba(&ctxt, &parameters.texture_parameters.to_bytes())?;
+    let height_map = height_map_spec.upload(&ctxt, InternalFormat(GL::UNSIGNED_BYTE), None)?;
 
     let planet_mesh = IcoPlanet::new(&parameters);
 

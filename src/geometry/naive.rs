@@ -7,6 +7,7 @@ use crate::geometry::util::Wavefront;
 
 use bracket_noise::prelude::FastNoise;
 use vek::Vec3 as Vek3;
+use vek::Vec2 as Vek2;
 
 #[derive(Debug)]
 pub struct Face {
@@ -281,7 +282,8 @@ impl Planet {
         PlanetVertex::new(
           v,
           n,
-          todo!(),
+          0.,
+          Vek2::new(u.0, u.1),
         )
       })
       .collect();

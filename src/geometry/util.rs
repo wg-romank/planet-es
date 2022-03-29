@@ -1,4 +1,4 @@
-use glsmrs::{Ctx, mesh::Mesh, attributes::{AttributeVector3, AttributeScalar}};
+use glsmrs::{Ctx, mesh::Mesh, attributes::{AttributeVector3, AttributeScalar, AttributeVector2}};
 
 use crate::shaders::attributes::{PlanetVertex, VertexIndex};
 
@@ -14,11 +14,13 @@ pub trait Wavefront: Sized {
     let positions = self.vertices().iter().map(|v| v.position.into_array()).collect::<Vec<[f32; 3]>>();
     let norms = self.vertices().iter().map(|v| v.norm.into_array()).collect::<Vec<[f32; 3]>>();
     let elevations = self.vertices().iter().map(|v| v.elevation).collect::<Vec<f32>>();
+    let uvs = self.vertices().iter().map(|v| v.uv.into_array()).collect::<Vec<[f32; 2]>>();
 
     Mesh::new(&ctx, self.indices())?
       .with_attribute::<AttributeVector3>("position", &positions)?
       .with_attribute::<AttributeVector3>("norm", &norms)?
-      .with_attribute::<AttributeScalar>("elevation", &elevations)
+      .with_attribute::<AttributeScalar>("elevation", &elevations)?
+      .with_attribute::<AttributeVector2>("uv", &uvs)
   }
 
   fn to_obj(&self) -> String {

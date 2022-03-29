@@ -5,6 +5,7 @@ varying vec3 v_pos;
 varying vec3 v_norm;
 varying vec4 v_frag_pos_light_space;
 varying float v_elev;
+varying vec2 v_uv;
 
 uniform vec3 blend;
 uniform mat4 normalMatrix;
@@ -70,7 +71,7 @@ float shadow_calc(float dot_ligth_normal) {
 }
 
 vec4 color_calc() {
-  vec4 color = texture2D(height_map, vec2(v_elev, 0.));
+  vec4 color = texture2D(height_map, v_uv);
   return color;
 }
 
@@ -102,7 +103,7 @@ void main() {
   }
 
   if (mode == 1.) {
-    gl_FragColor = vec4(trip_normal, 1.);
+    gl_FragColor = vec4(v_uv, 0., 1.);
   }
 
   if (mode == 2.) {

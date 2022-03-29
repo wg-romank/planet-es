@@ -9,6 +9,7 @@ use crate::{
 use crate::geometry::util::Wavefront;
 
 use vek::Vec3 as Vek3;
+use vek::Vec2 as Vek2;
 
 pub struct IcoPlanet {
   pub vertices: Vec<PlanetVertex>,
@@ -25,6 +26,18 @@ impl IcoPlanet {
     let mut min_height = f32::MAX;
 
     let mut hs: Vec<f32> = vec![];
+
+    let pi = core::f64::consts::PI as f32;
+
+    let uvs = ico.positions.iter().map(|p| {
+      let lat = f32::asin(p.0.y);
+      let lon = f32::atan2(p.0.x, -p.0.z);
+
+      let u = lat / (2. * pi);
+      let v = (lon / pi + 1.) / 2.;
+
+      (u, v)
+    }).collect::<Vec<(f32, f32)>>();
 
     ico.positions.iter_mut().for_each(|p| {
       let pp = p.0;
@@ -49,12 +62,14 @@ impl IcoPlanet {
       .iter()
       .zip(ico.normals.iter())
       .zip(hs.iter())
-      .map(|((p, n), e)| {
+      .zip(uvs.iter())
+      .map(|(((p, n), e), uv)| {
         let elevation_normalized = (*e - min_height) / (max_height - min_height);
         PlanetVertex::new(
           Vek3::new(p.0.x, p.0.y, p.0.z),
           Vek3::new(n.0.x, n.0.y, n.0.z),
           elevation_normalized,
+          Vek2::new(uv.0, uv.1),
         )
       })
       .collect();

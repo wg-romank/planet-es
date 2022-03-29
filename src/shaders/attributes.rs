@@ -6,11 +6,12 @@ pub struct PlanetVertex {
   pub position: Vek3<f32>,
   pub norm: Vek3<f32>,
   pub elevation: f32,
+  pub uv: Vek2<f32>,
 }
 
 impl PlanetVertex {
-  pub fn new(position: Vek3<f32>, norm: Vek3<f32>, elevation: f32) -> Self {
-    Self { position, norm, elevation }
+  pub fn new(position: Vek3<f32>, norm: Vek3<f32>, elevation: f32, uv: Vek2<f32>) -> Self {
+    Self { position, norm, elevation, uv }
   }
 }
 
