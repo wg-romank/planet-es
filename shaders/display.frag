@@ -103,7 +103,7 @@ void main() {
   }
 
   if (mode == 1.) {
-    gl_FragColor = vec4(0., v_uv.y, 0., 1.);
+    gl_FragColor = vec4(v_uv, 0., 1.);
   }
 
   if (mode == 2.) {

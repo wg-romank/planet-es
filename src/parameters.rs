@@ -79,7 +79,7 @@ pub struct RenderParameters {
 impl RenderParameters {
   pub fn new() -> Self {
     Self {
-      mode: RenderMode::Uvs,
+      mode: RenderMode::Display,
       fov: 45.,
       scale: 1.,
       sharpness: 1.,
@@ -87,7 +87,7 @@ impl RenderParameters {
       rotate_x_speed: 0.,
       rotate_y_speed: 0.6,
       face_resolution: 4,
-      radius: 0.8,
+      radius: 0.6,
       mesh_parameters: MeshParameters::new(),
       texture_parameters: TextureParameters::new(),
     }

@@ -185,19 +185,9 @@ ui.add('button', {name: 'Add Filter'}).onChange(() => {
 let textureParameters = ui.add('group', {name: 'Texture'});
 
 const addHeight = (parent, heightParameters) => {
-  let th = parent.add('group', { name: 'Height level'} )
-  th.add('slide', {name: 'Height', value: heightParameters.max_height, min: 0, max: 1, step: 0.01}).onChange(h => {
-    heightParameters.max_height = h
-  })
-
-  th.add('color', { name:'Color', type:'rgba', value: heightParameters.color }).onChange(c => {
+  parent.add('color', { name:'Color', type:'rgba', value: heightParameters.color }).onChange(c => {
     heightParameters.color = hex2rgb(c)
   }) 
-
-  th.add('button', { name: 'Remove'}).onChange(_ => {
-    parameters.texture_parameters.heights = parameters.texture_parameters.heights.filter(f => f != heightParameters)
-    textureParameters.remove(filter)
-  })
 
   parent.open()
 }
@@ -208,12 +198,6 @@ textureParameters.add('button', {name: 'Load texture'}).onChange(() => {
   UIL.Files.load({ callback: (data, name) => {
     r.load_texture(name, data);
   }})
-})
-
-ui.add('button', {name: 'Add Height'}).onChange(() => {
-  let params = JSON.parse(fl.TextureHeightParameters.generate())
-  parameters.texture_parameters.heights.push(params)
-  addHeight(textureParameters, params)
 })
 
 const set_parameters = (p) => {
