@@ -275,7 +275,6 @@ dependencies = [
  "icosahedron",
  "image",
  "js-sys",
- "map_3d",
  "serde",
  "serde_json",
  "vek",
@@ -467,12 +466,6 @@ checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if",
 ]
-
-[[package]]
-name = "map_3d"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed9c839122a3076d28500229cfebcd570d7dab4b300449dbf7f02ca17b0fe518"
 
 [[package]]
 name = "memchr"

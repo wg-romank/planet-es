@@ -15,7 +15,6 @@ icosahedron = { path = "../icosahedron" }
 glsmrs = { path = "../glsmrs" }
 image = "0.24"
 base64 = "0.13.0"
-map_3d = "0.1.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3.37"

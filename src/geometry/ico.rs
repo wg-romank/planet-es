@@ -16,30 +16,35 @@ pub struct IcoPlanet {
   pub indices: Vec<VertexIndex>,
 }
 
+macro_rules! log {
+  ( $( $t:tt )* ) => {
+      web_sys::console::log_1(&format!( $( $t )* ).into());
+  }
+}
+
 impl IcoPlanet {
   pub fn new(parameters: &RenderParameters) -> Self {
     let noise = FastNoise::new();
 
-    let mut ico = Polyhedron::new_isocahedron(parameters.radius, parameters.face_resolution as u32);
+    let mut ico = Polyhedron::new_isocahedron(1.0, parameters.face_resolution as u32);
 
     let mut max_height = f32::MIN;
     let mut min_height = f32::MAX;
 
     let mut hs: Vec<f32> = vec![];
+    let mut uvs: Vec<(f32, f32)> = vec![];
 
     let pi = core::f64::consts::PI as f32;
 
-    let uvs = ico.positions.iter().map(|p| {
-      let lat = f32::asin(p.0.y);
-      let lon = f32::atan2(p.0.x, -p.0.z);
-
-      let u = lat / (2. * pi);
-      let v = (lon / pi + 1.) / 2.;
-
-      (u, v)
-    }).collect::<Vec<(f32, f32)>>();
-
     ico.positions.iter_mut().for_each(|p| {
+      let lat = f32::asin(p.0.y); // [-pi/2, pi/2]
+      let lon = f32::atan2(p.0.x, -p.0.z); // [-pi, pi]
+
+      let u = (lon + pi) / (2. * pi);
+      let v = 1. - (lat + pi / 2.) / pi;
+
+      uvs.push((u, v));
+
       let pp = p.0;
       let mesh_offset = parameters.mesh_parameters.evaluate(&noise, pp);
       let res = pp * parameters.radius * (1. + mesh_offset);
@@ -52,8 +57,6 @@ impl IcoPlanet {
       p.0 = res;
     });
 
-    // log!("{:?}", hs);
-
     ico.compute_face_normals();
     ico.compute_triangle_normals();
 
@@ -65,6 +68,7 @@ impl IcoPlanet {
       .zip(uvs.iter())
       .map(|(((p, n), e), uv)| {
         let elevation_normalized = (*e - min_height) / (max_height - min_height);
+
         PlanetVertex::new(
           Vek3::new(p.0.x, p.0.y, p.0.z),
           Vek3::new(n.0.x, n.0.y, n.0.z),
