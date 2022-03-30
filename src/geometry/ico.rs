@@ -8,8 +8,8 @@ use crate::{
 
 use crate::geometry::util::Wavefront;
 
-use vek::Vec3 as Vek3;
 use vek::Vec2 as Vek2;
+use vek::Vec3 as Vek3;
 
 pub struct IcoPlanet {
   pub vertices: Vec<PlanetVertex>,
@@ -28,34 +28,31 @@ impl IcoPlanet {
 
     let mut ico = Polyhedron::new_isocahedron(1.0, parameters.face_resolution as u32);
 
-    let mut max_height = f32::MIN;
-    let mut min_height = f32::MAX;
-
-    let mut hs: Vec<f32> = vec![];
-    let mut uvs: Vec<(f32, f32)> = vec![];
-
     let pi = core::f64::consts::PI as f32;
 
-    ico.positions.iter_mut().for_each(|p| {
-      let lat = f32::asin(p.0.y); // [-pi/2, pi/2]
-      let lon = f32::atan2(p.0.x, -p.0.z); // [-pi, pi]
+    let (hs, uvs, max_height, min_height): (Vec<f32>, Vec<(f32, f32)>, f32, f32) =
+      ico
+        .positions
+        .iter_mut()
+        .fold((vec![], vec![], f32::MIN, f32::MAX), |(mut hs, mut uvs, max_h, min_h), p| {
+          let lat = f32::asin(p.0.y); // [-pi/2, pi/2]
+          let lon = f32::atan2(p.0.x, -p.0.z); // [-pi, pi]
 
-      let u = 1. - (lon + pi) / (2. * pi);
-      let v = 1. - (lat + pi / 2.) / pi;
+          let u = 1. - (lon + pi) / (2. * pi);
+          let v = 1. - (lat + pi / 2.) / pi;
 
-      uvs.push((u, v));
+          uvs.push((u, v));
 
-      let pp = p.0;
-      let mesh_offset = parameters.mesh_parameters.evaluate(&noise, pp);
-      let res = pp * parameters.radius * (1. + mesh_offset);
+          let pp = p.0;
+          let mesh_offset = parameters.mesh_parameters.evaluate(&noise, pp);
+          let res = pp * parameters.radius * (1. + mesh_offset);
 
-      max_height = max_height.max(mesh_offset);
-      min_height = min_height.min(mesh_offset);
+          hs.push(mesh_offset);
 
-      hs.push(mesh_offset);
+          p.0 = res;
 
-      p.0 = res;
-    });
+          (hs, uvs, max_h.max(mesh_offset), min_h.min(mesh_offset))
+        });
 
     ico.compute_face_normals();
     ico.compute_triangle_normals();
