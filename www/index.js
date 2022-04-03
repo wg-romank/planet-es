@@ -93,14 +93,6 @@ ui.add('slide', { name: 'Sharpness', value: parameters.sharpness, min: 0, max: 1
   parameters.sharpness = s
 })
 
-ui.add('slide', { name: 'Rotate X', value: parameters.rotate_x_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
-  parameters.rotate_x_speed = r
-})
-
-ui.add('slide', { name: 'Rotate Y', value: parameters.rotate_y_speed, min: 0, max: 1, step: 0.01}).onChange(r => {
-  parameters.rotate_y_speed = r
-})
-
 let light = ui.add('group', { name: 'Light'})
 
 light.add('slide', { name: 'Ambient', value: parameters.light.ambient, min: 0, max: 1, step: 0.01}).onChange(a => {
@@ -217,3 +209,29 @@ ui.add('button', {name: 'Save & Share'}).onChange(() => set_parameters(parameter
 ui.add('button', {name: 'Export Model'}).onChange(() => {
   UIL.Files.save({name: 'planet.obj', data: r.export_to_obj(), type: 'text'})
 })
+
+let isDown = false;
+let clientXOffset = 0;
+let clientYOffset = 0;
+
+canvas.addEventListener('pointerdown', ev => {
+  isDown = true;
+  clientXOffset = ev.clientX;
+  clientYOffset = ev.clientY;
+});
+
+canvas.addEventListener('pointermove', ev => {
+  if (isDown) {
+    const brect = canvas.getBoundingClientRect();
+
+    const rotate_x =  - (clientXOffset - ev.clientX) / brect.width;
+    const rotate_y = (clientYOffset - ev.clientY) / brect.height;
+
+    r.rotate(5 * rotate_x, 2 * rotate_y);
+  }
+});
+
+canvas.addEventListener('pointerup', ev => {
+  isDown = false;
+  r.set_rotated();
+});

@@ -14,8 +14,12 @@ mod webapp {
   use console_error_panic_hook;
 
   use glsmrs::Ctx;
+  use glsmrs::texture::Viewport;
+  use glsmrs::util::get_canvas;
+  use glsmrs::util::get_ctx_from_canvas;
   use image::ImageFormat;
   use wasm_bindgen::prelude::*;
+  use web_sys::WebGlRenderingContext;
 
   #[wasm_bindgen]
   pub struct WebApp {
@@ -30,9 +34,13 @@ mod webapp {
 
       let parameters: RenderParameters =
         serde_json::from_str(parameters).unwrap_or_else(|_| RenderParameters::new());
-      let ctx = Ctx::from(canvas_name).expect("failed to create context, no canvas?");
+      let canvas = get_canvas(canvas_name).expect(&format!("no canvas {}", canvas_name));
+      let webgl_ctx: WebGlRenderingContext = get_ctx_from_canvas(&canvas, "webgl").expect("webgl not found, really?");
+      let ctx = Ctx::new(webgl_ctx).expect("failed to create context, no canvas?");
 
-      let render = Render::from(ctx, &parameters).expect("failed to create render");
+      let canvas_viewport = Viewport::new(canvas.width(), canvas.height());
+
+      let render = Render::from(ctx, &parameters, canvas_viewport).expect("failed to create render");
 
       WebApp { render, parameters }
     }
@@ -67,6 +75,14 @@ mod webapp {
       // log!("img {:?}", img);
 
       self.render.update_texture(img.unwrap()).expect("failed to update texture")
+    }
+
+    pub fn rotate(&mut self, leftright: f32, topdown: f32) {
+      self.render.rotate(leftright, topdown)
+    }
+
+    pub fn set_rotated(&mut self) {
+      self.render.set_rotated()
     }
 
     pub fn export_to_obj(&self) -> String {

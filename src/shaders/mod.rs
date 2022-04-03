@@ -72,12 +72,16 @@ pub struct Render {
   // waves_texture2: Texture<Dim2, RGBA32F>,
   model: Mat4<f32>,
   light_model: Mat4<f32>,
+  canvas_viewport: Viewport,
+  rotation: Mat4<f32>,
+  rotation_rel: Mat4<f32>,
 }
 
 impl Render {
   pub fn from(
     ctxt: Ctx,
     parameters: &RenderParameters,
+    canvas_viewport: Viewport,
   ) -> Result<Render, String> {
     let program = gl::Program::new(&ctxt, VS_STR, FS_STR)?;
     let shadow_program = gl::Program::new(&ctxt, SHADOW_VS_STR, SHADOW_FS_STR)?;
@@ -87,7 +91,7 @@ impl Render {
 
     let shadow_texture = shadow_texture_spec.upload(&ctxt, InternalFormat(GL::UNSIGNED_INT), None)?;
 
-    let display_fb = EmptyFramebuffer::new(&ctxt, Viewport::new(400, 400));
+    let display_fb = EmptyFramebuffer::new(&ctxt, canvas_viewport);
 
     let shadow_fb = EmptyFramebuffer::new(&ctxt, gl::texture::Viewport::new(800, 800))
       .with_depth_slot(shadow_texture)?;
@@ -125,8 +129,11 @@ impl Render {
       height_map,
       // waves_texture1,
       // waves_texture2,
-      model: Self::compute_model(&parameters),
+      model: Self::compute_model(&parameters, &canvas_viewport),
       light_model: Self::compute_light_model(&parameters),
+      canvas_viewport,
+      rotation: Mat4::identity(),
+      rotation_rel: Mat4::identity(),
     })
   }
 
@@ -137,7 +144,7 @@ impl Render {
       .to_tess(&self.ctxt)
       .expect("failed to create planet");
 
-    self.model = Self::compute_model(parameters);
+    self.model = Self::compute_model(parameters, &self.canvas_viewport);
     self.light_model = Self::compute_light_model(parameters);
   }
 
@@ -162,6 +169,16 @@ impl Render {
     self.height_map = spec.upload_rgba(&self.ctxt, &texels)?;
 
     Ok(())
+  }
+
+  pub fn rotate(&mut self, leftright: f32, topdown: f32) {
+    self.rotation_rel = self.rotation
+      .rotated_y(leftright)
+      .rotated_z(topdown);
+  }
+
+  pub fn set_rotated(&mut self) {
+    self.rotation = self.rotation_rel.clone();
   }
 
   fn shadow_pass(&mut self, rotation: &Mat4<f32>) {
@@ -224,11 +241,11 @@ impl Render {
     ).expect("error debug pass");
   }
 
-  pub fn compute_model(parameters: &RenderParameters) -> Mat4<f32> {
+  pub fn compute_model(parameters: &RenderParameters, canvas_viewport: &Viewport) -> Mat4<f32> {
     let projection = Mat4::perspective_fov_rh_no(
       parameters.fov / 180. * std::f32::consts::PI,
-      400.,
-      400.,
+      canvas_viewport.w as f32,
+      canvas_viewport.h as f32,
       0.1,
       10.,
     );
@@ -258,10 +275,7 @@ impl Render {
   }
 
   pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
-    let rotation = vek::mat4::Mat4::identity()
-      .rotated_y(elapsed * parameters.rotate_y_speed)
-      .rotated_x(elapsed * parameters.rotate_x_speed);
-
+    let rotation = self.rotation_rel.clone();
     self.shadow_pass(&rotation);
 
     let normal_matrix = rotation.clone().inverted().transposed();

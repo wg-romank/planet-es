@@ -220,6 +220,12 @@
 /******/ 					"__wbg_instanceof_HtmlCanvasElement_a6157e470d06b638": function(p0i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_instanceof_HtmlCanvasElement_a6157e470d06b638"](p0i32);
 /******/ 					},
+/******/ 					"__wbg_width_cfa982e2a6ad6297": function(p0i32) {
+/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_width_cfa982e2a6ad6297"](p0i32);
+/******/ 					},
+/******/ 					"__wbg_height_1b399500ca683487": function(p0i32) {
+/******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_height_1b399500ca683487"](p0i32);
+/******/ 					},
 /******/ 					"__wbg_getContext_bd4e9445094eda84": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/florest_bg.js"].exports["__wbg_getContext_bd4e9445094eda84"](p0i32,p1i32,p2i32);
 /******/ 					},
@@ -372,7 +378,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/florest_bg.wasm":"b9d8d0f9ab644b6dafd4"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/florest_bg.wasm":"1e506960d2409fcebb6c"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
