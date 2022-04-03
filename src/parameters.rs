@@ -78,7 +78,7 @@ impl RenderParameters {
   pub fn new() -> Self {
     Self {
       mode: RenderMode::Display,
-      fov: 45.,
+      fov: 90.,
       scale: 1.,
       sharpness: 1.,
       light: LightingParameters::new(),
