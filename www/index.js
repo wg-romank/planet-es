@@ -220,14 +220,16 @@ canvas.addEventListener('pointerdown', ev => {
   clientYOffset = ev.clientY;
 });
 
+let norm = Math.max(brect.width, brect.height);
+let rotation_speed = 5;
+
+
 canvas.addEventListener('pointermove', ev => {
   if (isDown) {
-    const brect = canvas.getBoundingClientRect();
+    const rotate_x =  - (clientXOffset - ev.clientX) / norm;
+    const rotate_y = (clientYOffset - ev.clientY) / norm;
 
-    const rotate_x =  - (clientXOffset - ev.clientX) / brect.width;
-    const rotate_y = (clientYOffset - ev.clientY) / brect.height;
-
-    r.rotate(5 * rotate_x, 2 * rotate_y);
+    r.rotate(rotation_speed * rotate_x, rotation_speed * rotate_y);
   }
 });
 
