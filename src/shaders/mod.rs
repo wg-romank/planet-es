@@ -217,21 +217,15 @@ where
   }
 
   fn shadow_pass(&mut self, rotation: &Mat4<f32>) {
-    let ctxt = &mut self.ctxt;
-    let shadow_program = &mut self.shadow_program;
-    let shadow_map = &mut self.shadow_fb;
-    let planet = &self.planet;
-    let light_model = &self.light_model;
-
-    let shadow_render = ctxt
+    let shadow_render = self.ctxt
       .new_pipeline_gate()
-      .pipeline(shadow_map, &PipelineState::default(), |_, mut shd_gate| {
-        shd_gate.shade(shadow_program, |mut iface, uni, mut rdr_gate| {
+      .pipeline(&self.shadow_fb, &PipelineState::default(), |_, mut shd_gate| {
+        shd_gate.shade(&mut self.shadow_program, |mut iface, uni, mut rdr_gate| {
           rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             iface.set(&uni.rotation, rotation.into_col_arrays().into());
-            iface.set(&uni.light_model, *light_model);
+            iface.set(&uni.light_model, self.light_model);
 
-            tess_gate.render(planet)
+            tess_gate.render(&self.planet)
           })
         })
       })
@@ -248,37 +242,26 @@ where
     rotation: &Mat4<f32>,
     normal_matrix: &Mat4<f32>,
   ) {
-    let ctxt = &mut self.ctxt;
-    let program = &mut self.program;
-    let shadow_map = &mut self.shadow_fb;
-    let height_map = &mut self.height_map;
-    let back_buffer = &self.output_fb;
-    let planet = &self.planet;
-    let light_model = &self.light_model;
-    let model = &self.model;
-    let waves_1 = &mut self.waves_texture1;
-    // let waves_2 = &mut self.waves_texture2;
-
-    let render = ctxt
+    let render = self.ctxt
       .new_pipeline_gate()
       .pipeline(
-        &back_buffer,
+        &self.output_fb,
         &PipelineState::default(),
         |pipeline, mut shd_gate| {
           let sh_m = pipeline
-            .bind_texture(shadow_map.depth_stencil_slot())
+            .bind_texture(self.shadow_fb.depth_stencil_slot())
             .expect("failed to bind depth texture");
           let hi_m = pipeline
-            .bind_texture(height_map)
+            .bind_texture(&mut self.height_map)
             .expect("failed to bind height map");
           let w1 = pipeline
-            .bind_texture(waves_1)
+            .bind_texture(&mut self.waves_texture1)
             .expect("failed to bind waves1");
           // let w2 = pipeline
-          //   .bind_texture(waves_2)
+          //   .bind_texture(&mut self.waves_texture2)
           //   .expect("failed to bind waves1");
 
-          shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+          shd_gate.shade(&mut self.program, |mut iface, uni, mut rdr_gate| {
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
               iface.set(&uni.rotation, rotation.into_col_arrays().into());
               iface.set(&uni.normal_matrix, normal_matrix.into_col_arrays().into());
@@ -287,8 +270,8 @@ where
                 parameters.light.diffuse.position.into_array().into(),
               );
 
-              iface.set(&uni.model, *model);
-              iface.set(&uni.light_model, *light_model);
+              iface.set(&uni.model, self.model);
+              iface.set(&uni.light_model, self.light_model);
 
               iface.set(&uni.shadow_map, sh_m.binding());
               iface.set(&uni.height_map, hi_m.binding());
@@ -303,7 +286,7 @@ where
               iface.set(&uni.ambient, parameters.light.ambient);
               iface.set(&uni.diffuse_intensity, parameters.light.diffuse.intensity);
 
-              tess_gate.render(planet)
+              tess_gate.render(&self.planet)
             })
           })
         },
@@ -316,27 +299,21 @@ where
   }
 
   pub fn debug_pass(&mut self) {
-    let ctxt = &mut self.ctxt;
-    let program = &mut self.debug_program;
-    let shadow_map = &mut self.shadow_fb;
-    let back_buffer = &self.output_fb;
-    let quad = &self.quad;
-
-    let render = ctxt
+    let render = self.ctxt
       .new_pipeline_gate()
       .pipeline(
-        &back_buffer,
+        &self.output_fb,
         &PipelineState::default(),
         |pipeline, mut shd_gate| {
           let sh_m = pipeline
-            .bind_texture(shadow_map.depth_stencil_slot())
+            .bind_texture(self.shadow_fb.depth_stencil_slot())
             .expect("failed to bind depth texture");
 
-          shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+          shd_gate.shade(&mut self.debug_program, |mut iface, uni, mut rdr_gate| {
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {
               iface.set(&uni.depth_map, sh_m.binding());
 
-              tess_gate.render(quad)
+              tess_gate.render(&self.quad)
             })
           })
         },
