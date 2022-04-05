@@ -25,6 +25,7 @@ impl RenderMode {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct DiffuseLightParameters {
+  pub shadow_map_size: u32,
   pub intensity: f32,
   pub near_clip: f32,
   pub far_clip: f32,
@@ -36,6 +37,7 @@ pub struct DiffuseLightParameters {
 impl DiffuseLightParameters {
   pub fn new() -> Self {
     Self {
+      shadow_map_size: 800,
       intensity: 1.,
       near_clip: 5.18,
       far_clip: 7.37,

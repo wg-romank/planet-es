@@ -39,20 +39,14 @@ const DEBUG_FS_STR: &str = include_str!("../../shaders/debug_shadows.frag");
 
 use glsmrs as gl;
 
-pub fn to_png_texture(ctx: &Ctx, bytes: &[u8]) -> Result<UploadedTexture, String> {
-  let texture = image::load_from_memory_with_format(bytes, ImageFormat::Png)
+fn to_png_texture(ctx: &Ctx, bytes: &[u8]) -> Result<UploadedTexture, String> {
+  let texture = image::load_from_memory(bytes)
     .map_err(|e| format!("{:?}", e))?;
 
-  // log!("texture {:?}", texture);
-
   let (width, height) = texture.dimensions();
-  let tex = texture
-    .as_rgb8()
-    .ok_or(format!("not rgb8"))?;
+  let tex = texture.into_rgb8();
 
   TextureSpec::new(ColorFormat(GL::RGB), [width, height])
-    .wrap_s(WrapS(GL::REPEAT))
-    .wrap_t(WrapT(GL::REPEAT))
     .upload_u8(&ctx, &tex.as_raw())
 }
 
@@ -87,14 +81,7 @@ impl Render {
     let shadow_program = gl::Program::new(&ctxt, SHADOW_VS_STR, SHADOW_FS_STR)?;
     let debug_program = gl::Program::new(&ctxt, DEBUG_VS_STR, DEBUG_FS_STR)?;
 
-    let shadow_texture_spec = TextureSpec::depth([800, 800]);
-
-    let shadow_texture = shadow_texture_spec.upload(&ctxt, InternalFormat(GL::UNSIGNED_INT), None)?;
-
     let display_fb = EmptyFramebuffer::new(&ctxt, canvas_viewport);
-
-    let shadow_fb = EmptyFramebuffer::new(&ctxt, gl::texture::Viewport::new(800, 800))
-      .with_depth_slot(shadow_texture)?;
 
     let mut height_map_spec = TextureSpec::new(ColorFormat(GL::RGBA), [100, 1]);
     height_map_spec.interpolation_min = InterpolationMin(GL::NEAREST);
@@ -116,7 +103,7 @@ impl Render {
     let pipeline = Pipeline::new(&ctxt);
 
     Ok(Render {
-      ctxt,
+      ctxt: ctxt.clone(),
       planet_mesh,
       pipeline,
       planet,
@@ -124,7 +111,7 @@ impl Render {
       program,
       shadow_program,
       debug_program,
-      shadow_fb,
+      shadow_fb: Self::make_shadow_map(&ctxt, &parameters)?,
       display_fb,
       height_map,
       // waves_texture1,
@@ -148,25 +135,8 @@ impl Render {
     self.light_model = Self::compute_light_model(parameters);
   }
 
-  pub fn update_texture(&mut self, texture: DynamicImage) -> Result<(), String> {
-    let (width, height) = texture.dimensions();
-    // todo: pret
-    let texels = texture
-      .as_rgb8()
-      .map(|img| {
-        img
-          .as_raw()
-          .chunks(3)
-          .map(|c| [c[0] as f32 / 255., c[1] as f32 / 255., c[2] as f32 / 255., 1. as f32])
-          .collect::<Vec<[f32; 4]>>()
-      })
-      .ok_or(format!("not rgba {:?}", texture))?;
-
-
-    let mut spec = TextureSpec::new(ColorFormat(GL::RGBA), [width, height]);
-    spec.interpolation_min = InterpolationMin(GL::NEAREST);
-    spec.interpolation_mag = InterpolationMag(GL::NEAREST);
-    self.height_map = spec.upload_rgba(&self.ctxt, &texels)?;
+  pub fn update_texture(&mut self, bytes: &[u8]) -> Result<(), String> {
+    self.height_map = to_png_texture(&self.ctxt, bytes)?;
 
     Ok(())
   }
@@ -181,6 +151,21 @@ impl Render {
     self.rotation = self.rotation_rel.clone();
   }
 
+  pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
+    let rotation = self.rotation_rel.clone();
+    self.shadow_pass(&rotation);
+
+    let normal_matrix = rotation.clone().inverted().transposed();
+
+    if parameters.light.diffuse.debug_shadows {
+      self.debug_pass();
+    } else {
+      self.display_pass(&parameters, &rotation, &normal_matrix)
+    }
+  }
+}
+
+impl Render {
   fn shadow_pass(&mut self, rotation: &Mat4<f32>) {
     let uni_values = vec![
       ("rotation", UniformData::Matrix4(rotation.into_col_array())),
@@ -228,7 +213,7 @@ impl Render {
 
   }
 
-  pub fn debug_pass(&mut self) {
+  fn debug_pass(&mut self) {
     let uni_values = vec![
       ("depth_map", UniformData::Texture(self.shadow_fb.depth_slot())),
     ].into_iter().collect::<HashMap<_, _>>();
@@ -240,8 +225,10 @@ impl Render {
       &mut self.display_fb,
     ).expect("error debug pass");
   }
+}
 
-  pub fn compute_model(parameters: &RenderParameters, canvas_viewport: &Viewport) -> Mat4<f32> {
+impl Render {
+  fn compute_model(parameters: &RenderParameters, canvas_viewport: &Viewport) -> Mat4<f32> {
     let projection = Mat4::perspective_fov_rh_no(
       parameters.fov / 180. * std::f32::consts::PI,
       canvas_viewport.w as f32,
@@ -255,7 +242,7 @@ impl Render {
     projection * view
   }
 
-  pub fn compute_light_model(parameters: &RenderParameters) -> Mat4<f32> {
+  fn compute_light_model(parameters: &RenderParameters) -> Mat4<f32> {
     let light_view: Mat4<f32> = Mat4::look_at_rh(
       parameters.light.diffuse.position,
       Vek3::zero(),
@@ -274,16 +261,13 @@ impl Render {
     light_projection * light_view
   }
 
-  pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
-    let rotation = self.rotation_rel.clone();
-    self.shadow_pass(&rotation);
+  fn make_shadow_map(ctxt: &Ctx, parameters: &RenderParameters) -> Result<DepthFrameBuffer, String> {
+    let side = parameters.light.diffuse.shadow_map_size;
+    let (w, h) = (side, side);
+    let shadow_texture_spec = TextureSpec::depth([w, h]);
+    let shadow_texture = shadow_texture_spec.upload(ctxt, InternalFormat(GL::UNSIGNED_INT), None)?;
 
-    let normal_matrix = rotation.clone().inverted().transposed();
-
-    if parameters.light.diffuse.debug_shadows {
-      self.debug_pass();
-    } else {
-      self.display_pass(&parameters, &rotation, &normal_matrix)
-    }
+    EmptyFramebuffer::new(&ctxt, gl::texture::Viewport::new(w, h))
+      .with_depth_slot(shadow_texture)
   }
 }

@@ -59,22 +59,19 @@ mod webapp {
       self.render.frame(elapsed, &self.parameters);
     }
 
-    pub fn load_texture(&mut self, name: &str, encoded: &str) {
+    pub fn load_texture(&mut self, name: &str, encoded: &str) -> Result<(), String> {
       let mut split = encoded.split(",");
       let format = split.next().unwrap();
       let data = split.next().unwrap();
 
       use crate::log;
-      use image::load_from_memory_with_format;
 
       log!("name {}", name);
       log!("format {}", format);
-      let data_binary = decode(data);
-      // log!("decoded {:?}", data_binary);
-      let img = load_from_memory_with_format(&data_binary.unwrap(), ImageFormat::Png);
-      // log!("img {:?}", img);
+      let data_binary = decode(data)
+        .map_err(|e| format!("unable to decode data {}", e))?;
 
-      self.render.update_texture(img.unwrap()).expect("failed to update texture")
+      self.render.update_texture(&data_binary)
     }
 
     pub fn rotate(&mut self, leftright: f32, topdown: f32) {
