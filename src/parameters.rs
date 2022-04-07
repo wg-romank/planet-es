@@ -157,7 +157,8 @@ impl MeshParameters {
     Self {
       frequency: 0.5,
       use_first_layer_as_mask: false,
-      filters: vec![MeshFilterParameters::default()],
+      // filters: vec![MeshFilterParameters::default()],
+      filters: vec![],
     }
   }
 

@@ -11,6 +11,7 @@ uniform vec3 blend;
 uniform mat4 normalMatrix;
 uniform vec3 lightPosition;
 uniform sampler2D shadow_map;
+uniform vec2 height_map_size;
 uniform sampler2D height_map;
 uniform mat4 model;
 uniform float mode;
@@ -71,15 +72,67 @@ float shadow_calc(float dot_ligth_normal) {
 }
 
 vec4 color_calc() {
-  vec4 color = texture2D(height_map, v_uv);
+  // vec4 color = texture2D(height_map, v_uv);
+  vec4 color = vec4(0.6, 0.5, 0.8, 1.0);
   return color;
+}
+
+// vec3 normal_calc(vec2 uv) {
+//   // vec2 d = 1. / height_map_size;
+//   // vec2 uvNorth = uv + vec2(d.x, 0);
+//   // vec2 uvSouth = uv - vec2(d.x, 0);
+//   // float x = texture2D(height_map, uv + vec2(d.x, 0)).r - texture2D(height_map, uv - vec2(d.x, 0)).r;
+//   // float y = length(texture2D(height_map, uv + vec2(0, d.y)) - texture2D(height_map, uv - vec2(0, d.y)));
+//   // // float z = -1.;
+//   // // return normalize(vec3(x, y, z));
+
+//   float r = texture2D(normal_r, uv).r;
+//   float g = texture2D(normal_g, uv).r;
+//   float b = sqrt(1. - pow(r, 2.) - pow(g, 2.));
+
+//   return vec3(r, g, b);
+// }
+
+
+vec3 coordinate_to_point(vec2 lonlat) {
+  float y = sin(lonlat.y);
+  float r = cos(lonlat.y);
+  float x = sin(lonlat.x) * r;
+  float z = -cos(lonlat.x) * r;
+
+  return vec3(x, y, z);
+}
+
+const float PI = 3.14159;
+
+vec3 world_point(vec2 uv) {
+  vec2 lonlat = (uv - 0.5) * PI * vec2(2, 1);
+  vec3 spherePoint = coordinate_to_point(lonlat);
+  return spherePoint + mix(0., 0.1, texture2D(height_map, uv).r);
+}
+
+vec3 normal_calc(vec2 uv) {
+  vec2 d = 1. / height_map_size;
+
+  vec3 north = world_point(uv + vec2(0., d.y));
+  vec3 south = world_point(uv - vec2(0., d.y));
+  vec3 east = world_point(uv + vec2(d.x, 0.));
+  vec3 west = world_point(uv - vec2(d.x, 0.));
+
+  vec3 ns = normalize(north - south);
+  vec3 ew = normalize(east - west);
+
+  vec3 normal = normalize(cross(ns, ew));
+
+  return normal;
 }
 
 void main() {
   vec4 color = color_calc();
   // vec3 trip_normal = triplanar(waves_1, v_norm, v_pos_orig);
-  vec3 trip_normal = v_norm;
-  vec3 norm_transformed = (normalMatrix * vec4(trip_normal, 0.)).xyz;
+  // vec3 trip_normal = v_norm;
+  // vec3 norm_transformed = (normalMatrix * vec4(trip_normal, 0.)).xyz;
+  vec3 norm_transformed = normal_calc(v_uv).xyz;
 
   //ambient
   vec3 ambient = ambient * color.xyz;
@@ -94,12 +147,13 @@ void main() {
   // float kd = dot(norm_transformed, -normalize(lightPosition));
   // vec3 diffuse = kd * color.xyz;
   
-  float shadow = shadow_calc(dot_light_normal);
+  // float shadow = shadow_calc(dot_light_normal);
+  float shadow = 1.0;
 
   vec3 lighting = ((diffuse * shadow) + ambient) * color.xyz;
 
   if (mode == 0.) {
-    gl_FragColor = vec4(v_norm, 1.);
+    gl_FragColor = vec4(norm_transformed, 1.);
   }
 
   if (mode == 1.) {

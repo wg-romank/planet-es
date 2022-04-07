@@ -15,10 +15,8 @@ use gl::texture::InternalFormat;
 use gl::texture::InterpolationMag;
 use gl::texture::InterpolationMin;
 use gl::texture::Viewport;
-use gl::texture::WrapS;
-use gl::texture::WrapT;
 use gl::texture::{Framebuffer, UploadedTexture, TextureSpec, ColorFormat};
-use image::{DynamicImage, GenericImageView, ImageFormat};
+use image::GenericImageView;
 use vek::{FrustumPlanes, Mat4, Vec3 as Vek3};
 
 use crate::geometry::ico::IcoPlanet;
@@ -169,6 +167,7 @@ impl Render {
   fn shadow_pass(&mut self, rotation: &Mat4<f32>) {
     let uni_values = vec![
       ("rotation", UniformData::Matrix4(rotation.into_col_array())),
+      ("height_map", UniformData::Texture(&mut self.height_map)),
       ("light_model", UniformData::Matrix4(self.light_model.into_col_array()))
     ].into_iter().collect::<HashMap<_, _>>();
 
@@ -195,6 +194,7 @@ impl Render {
       ("model", UniformData::Matrix4(self.model.into_col_array())),
       ("light_model", UniformData::Matrix4(self.light_model.into_col_array())),
       ("shadow_map", UniformData::Texture(self.shadow_fb.depth_slot())),
+      ("height_map_size", UniformData::Vector2([1024., 512.])),
       ("height_map", UniformData::Texture(&mut self.height_map)),
       ("mode", UniformData::Scalar(parameters.mode.in_shader())),
       // ("blend", UniformData::Vector3(paramters.blend)),
@@ -216,6 +216,7 @@ impl Render {
   fn debug_pass(&mut self) {
     let uni_values = vec![
       ("depth_map", UniformData::Texture(self.shadow_fb.depth_slot())),
+      // ("depth_map", UniformData::Texture(&mut self.height_map)),
     ].into_iter().collect::<HashMap<_, _>>();
 
     self.pipeline.shade(
