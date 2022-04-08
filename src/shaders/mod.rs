@@ -151,7 +151,7 @@ impl Render {
 
   pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
     let rotation = self.rotation_rel.clone();
-    self.shadow_pass(&rotation);
+    self.shadow_pass(&parameters, &rotation);
 
     let normal_matrix = rotation.clone().inverted().transposed();
 
@@ -164,10 +164,11 @@ impl Render {
 }
 
 impl Render {
-  fn shadow_pass(&mut self, rotation: &Mat4<f32>) {
+  fn shadow_pass(&mut self, parameters: &RenderParameters, rotation: &Mat4<f32>) {
     let uni_values = vec![
       ("rotation", UniformData::Matrix4(rotation.into_col_array())),
       ("height_map", UniformData::Texture(&mut self.height_map)),
+      ("extrude_scale", UniformData::Scalar(parameters.texture_parameters.extrude_scale)),
       ("light_model", UniformData::Matrix4(self.light_model.into_col_array()))
     ].into_iter().collect::<HashMap<_, _>>();
 
@@ -196,6 +197,7 @@ impl Render {
       ("shadow_map", UniformData::Texture(self.shadow_fb.depth_slot())),
       ("height_map_size", UniformData::Vector2([1024., 512.])),
       ("height_map", UniformData::Texture(&mut self.height_map)),
+      ("extrude_scale", UniformData::Scalar(parameters.texture_parameters.extrude_scale)),
       ("mode", UniformData::Scalar(parameters.mode.in_shader())),
       // ("blend", UniformData::Vector3(paramters.blend)),
       ("scale", UniformData::Scalar(parameters.scale)),

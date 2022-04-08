@@ -192,6 +192,10 @@ const addHeight = (parent, heightParameters) => {
 
 parameters.texture_parameters.heights.forEach(h => addHeight(textureParameters, h))
 
+textureParameters.add('slide', { name: 'Scale', value: parameters.texture_parameters.extrude_scale, min: -1., max: 1. }).onChange(s => {
+  parameters.texture_parameters.extrude_scale = s
+})
+
 textureParameters.add('button', {name: 'Load texture'}).onChange(() => {
   UIL.Files.load({ callback: (data, name) => {
     r.load_texture(name, data);

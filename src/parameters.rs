@@ -193,12 +193,14 @@ impl MeshParameters {
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct TextureParameters {
   heights: Vec<TextureHeightParameters>,
+  pub extrude_scale: f32,
 }
 
 impl TextureParameters {
   fn new() -> Self {
     Self {
       heights: vec![TextureHeightParameters::new()],
+      extrude_scale: 0.1,
     }
   }
 

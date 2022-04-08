@@ -35,10 +35,10 @@ impl IcoPlanet {
         .positions
         .iter_mut()
         .fold((vec![], vec![], f32::MIN, f32::MAX), |(mut hs, mut uvs, max_h, min_h), p| {
-          let lat = f32::asin(p.0.y); // [-pi/2, pi/2]
           let lon = f32::atan2(p.0.x, -p.0.z); // [-pi, pi]
-
           let u = 1. - (lon + pi) / (2. * pi);
+
+          let lat = f32::asin(p.0.y); // [-pi/2, pi/2]
           let v = 1. - (lat + pi / 2.) / pi;
 
           uvs.push((u, v));

@@ -11,8 +11,11 @@ uniform vec3 blend;
 uniform mat4 normalMatrix;
 uniform vec3 lightPosition;
 uniform sampler2D shadow_map;
+
 uniform vec2 height_map_size;
 uniform sampler2D height_map;
+uniform float extrude_scale;
+
 uniform mat4 model;
 uniform float mode;
 uniform float sharpness;
@@ -22,6 +25,11 @@ uniform sampler2D waves_2;
 
 uniform float diffuse_intensity;
 uniform float ambient;
+
+
+vec3 extrude(vec3 point, vec2 uv) {
+  return point + point * extrude_scale * texture2D(height_map, uv).r;
+}
 
 vec3 triplanar(sampler2D t, vec3 norm, vec3 pos) {
   vec3 normalX = texture2D(t, scale * pos.zy).xyz;
@@ -103,12 +111,12 @@ vec3 coordinate_to_point(vec2 lonlat) {
   return vec3(x, y, z);
 }
 
-const float PI = 3.14159;
+const float PI = 3.1415926535897932;
 
 vec3 world_point(vec2 uv) {
-  vec2 lonlat = (uv - 0.5) * PI * vec2(2, 1);
-  vec3 spherePoint = coordinate_to_point(lonlat);
-  return spherePoint + mix(0., 0.1, texture2D(height_map, uv).r);
+  vec2 lonlat = (0.5 - uv) * PI * vec2(2, 1);
+  vec3 sphere_point = coordinate_to_point(lonlat);
+  return extrude(sphere_point, uv);
 }
 
 vec3 normal_calc(vec2 uv) {
@@ -129,10 +137,14 @@ vec3 normal_calc(vec2 uv) {
 
 void main() {
   vec4 color = color_calc();
+
   // vec3 trip_normal = triplanar(waves_1, v_norm, v_pos_orig);
+
   // vec3 trip_normal = v_norm;
   // vec3 norm_transformed = (normalMatrix * vec4(trip_normal, 0.)).xyz;
-  vec3 norm_transformed = normal_calc(v_uv).xyz;
+
+  // vec3 norm_transformed = v_norm;
+  vec3 norm_transformed = normal_calc(v_uv);
 
   //ambient
   vec3 ambient = ambient * color.xyz;
