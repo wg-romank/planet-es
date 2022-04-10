@@ -7,6 +7,7 @@ use crate::{
 };
 
 use crate::geometry::util::Wavefront;
+use crate::geometry::util::xyz_to_latlonuv;
 
 use vek::Vec2 as Vek2;
 use vek::Vec3 as Vek3;
@@ -28,20 +29,13 @@ impl IcoPlanet {
 
     let mut ico = Polyhedron::new_isocahedron(1.0, parameters.face_resolution as u32);
 
-    let pi = core::f64::consts::PI as f32;
 
     let (hs, uvs, max_height, min_height): (Vec<f32>, Vec<(f32, f32)>, f32, f32) =
       ico
         .positions
         .iter_mut()
         .fold((vec![], vec![], f32::MIN, f32::MAX), |(mut hs, mut uvs, max_h, min_h), p| {
-          let lon = f32::atan2(p.0.x, -p.0.z); // [-pi, pi]
-          let u = 1. - (lon + pi) / (2. * pi);
-
-          let lat = f32::asin(p.0.y); // [-pi/2, pi/2]
-          let v = 1. - (lat + pi / 2.) / pi;
-
-          uvs.push((u, v));
+          uvs.push(xyz_to_latlonuv(p.0));
 
           let pp = p.0;
           let mesh_offset = parameters.mesh_parameters.evaluate(&noise, pp);

@@ -2,6 +2,7 @@ pub mod attributes;
 pub mod uniforms;
 
 use std::collections::HashMap;
+use std::ops::Deref;
 
 use gl::Pipeline;
 use gl::Program;
@@ -21,6 +22,7 @@ use vek::{FrustumPlanes, Mat4, Vec3 as Vek3};
 
 use crate::geometry::ico::IcoPlanet;
 use crate::geometry::mk_quad;
+use crate::geometry::naive::Planet;
 use crate::geometry::util::Wavefront;
 use crate::parameters::RenderParameters;
 
@@ -37,20 +39,30 @@ const DEBUG_FS_STR: &str = include_str!("../../shaders/debug_shadows.frag");
 
 use glsmrs as gl;
 
-fn to_png_texture(ctx: &Ctx, bytes: &[u8]) -> Result<UploadedTexture, String> {
+fn to_png_texture(ctx: &Ctx, bytes: &[u8]) -> Result<HeigtMap, String> {
   let texture = image::load_from_memory(bytes)
     .map_err(|e| format!("{:?}", e))?;
 
   let (width, height) = texture.dimensions();
   let tex = texture.into_rgb8();
 
-  TextureSpec::new(ColorFormat(GL::RGB), [width, height])
-    .upload_u8(&ctx, &tex.as_raw())
+  let hm = TextureSpec::new(ColorFormat(GL::RGB), [width, height])
+    .upload_u8(&ctx, &tex.as_raw())?;
+
+  Ok(HeigtMap {
+    texture: hm,
+    size: [width as f32, height as f32]
+  })
+}
+
+pub struct HeigtMap {
+  texture: UploadedTexture,
+  size: [f32; 2]
 }
 
 pub struct Render {
   pub ctxt: Ctx,
-  pub planet_mesh: IcoPlanet,
+  pub planet_mesh: Planet,
   pipeline: Pipeline,
   planet: Mesh,
   quad: Mesh,
@@ -59,7 +71,7 @@ pub struct Render {
   debug_program: Program,
   display_fb: EmptyFramebuffer,
   shadow_fb: DepthFrameBuffer,
-  height_map: UploadedTexture,
+  height_map: Option<HeigtMap>,
   // waves_texture1: TextureHandle,
   // waves_texture2: Texture<Dim2, RGBA32F>,
   model: Mat4<f32>,
@@ -81,13 +93,7 @@ impl Render {
 
     let display_fb = EmptyFramebuffer::new(&ctxt, canvas_viewport);
 
-    let mut height_map_spec = TextureSpec::new(ColorFormat(GL::RGBA), [100, 1]);
-    height_map_spec.interpolation_min = InterpolationMin(GL::NEAREST);
-    height_map_spec.interpolation_mag = InterpolationMag(GL::NEAREST);
-
-    let height_map = height_map_spec.upload_rgba(&ctxt, &parameters.texture_parameters.to_bytes())?;
-
-    let planet_mesh = IcoPlanet::new(&parameters);
+    let planet_mesh = Planet::new(&parameters);
 
     let planet = planet_mesh
       .to_tess(&ctxt)
@@ -111,7 +117,7 @@ impl Render {
       debug_program,
       shadow_fb: Self::make_shadow_map(&ctxt, &parameters)?,
       display_fb,
-      height_map,
+      height_map: None,
       // waves_texture1,
       // waves_texture2,
       model: Self::compute_model(&parameters, &canvas_viewport),
@@ -123,7 +129,7 @@ impl Render {
   }
 
   pub fn update_mesh(&mut self, parameters: &RenderParameters) {
-    self.planet_mesh = IcoPlanet::new(&parameters);
+    self.planet_mesh = Planet::new(&parameters);
     self.planet = self
       .planet_mesh
       .to_tess(&self.ctxt)
@@ -134,7 +140,7 @@ impl Render {
   }
 
   pub fn update_texture(&mut self, bytes: &[u8]) -> Result<(), String> {
-    self.height_map = to_png_texture(&self.ctxt, bytes)?;
+    self.height_map = Some(to_png_texture(&self.ctxt, bytes)?);
 
     Ok(())
   }
@@ -164,13 +170,21 @@ impl Render {
 }
 
 impl Render {
+  fn hm(height_map: &mut Option<HeigtMap>) -> Vec<(&'static str, UniformData)> {
+    if let Some(hm) = height_map.as_mut() {
+      vec![("height_map", UniformData::Texture(&mut hm.texture)),
+      ("height_map_size", UniformData::Vector2(hm.size))]
+    } else {
+      vec![]
+    }
+  }
+
   fn shadow_pass(&mut self, parameters: &RenderParameters, rotation: &Mat4<f32>) {
     let uni_values = vec![
       ("rotation", UniformData::Matrix4(rotation.into_col_array())),
-      ("height_map", UniformData::Texture(&mut self.height_map)),
       ("extrude_scale", UniformData::Scalar(parameters.texture_parameters.extrude_scale)),
-      ("light_model", UniformData::Matrix4(self.light_model.into_col_array()))
-    ].into_iter().collect::<HashMap<_, _>>();
+      ("light_model", UniformData::Matrix4(self.light_model.into_col_array())),
+    ].into_iter().chain(Self::hm(&mut self.height_map)).collect::<HashMap<_, _>>();
 
     self.pipeline.shade(
       &self.shadow_program,
@@ -195,8 +209,7 @@ impl Render {
       ("model", UniformData::Matrix4(self.model.into_col_array())),
       ("light_model", UniformData::Matrix4(self.light_model.into_col_array())),
       ("shadow_map", UniformData::Texture(self.shadow_fb.depth_slot())),
-      ("height_map_size", UniformData::Vector2([1024., 512.])),
-      ("height_map", UniformData::Texture(&mut self.height_map)),
+      ("color", UniformData::Vector3(parameters.texture_parameters.color)),
       ("extrude_scale", UniformData::Scalar(parameters.texture_parameters.extrude_scale)),
       ("mode", UniformData::Scalar(parameters.mode.in_shader())),
       // ("blend", UniformData::Vector3(paramters.blend)),
@@ -204,7 +217,7 @@ impl Render {
       ("sharpness", UniformData::Scalar(parameters.sharpness)),
       ("ambient", UniformData::Scalar(parameters.light.ambient)),
       ("diffuse_intensity", UniformData::Scalar(parameters.light.diffuse.intensity)),
-    ].into_iter().collect::<HashMap<_, _>>();
+    ].into_iter().chain(Self::hm(&mut self.height_map)).collect::<HashMap<_, _>>();
 
     self.pipeline.shade(
       &self.program,

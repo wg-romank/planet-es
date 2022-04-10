@@ -84,7 +84,7 @@ impl RenderParameters {
       scale: 1.,
       sharpness: 1.,
       light: LightingParameters::new(),
-      face_resolution: 4,
+      face_resolution: 64,
       radius: 0.6,
       mesh_parameters: MeshParameters::new(),
       texture_parameters: TextureParameters::new(),
@@ -192,57 +192,16 @@ impl MeshParameters {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct TextureParameters {
-  heights: Vec<TextureHeightParameters>,
+  pub color: [f32; 3],
   pub extrude_scale: f32,
 }
 
 impl TextureParameters {
   fn new() -> Self {
     Self {
-      heights: vec![TextureHeightParameters::new()],
+      color: [0.68, 0.48, 0.],
       extrude_scale: 0.1,
     }
   }
 
-  // todo: do in a shader?
-  pub fn evaluate(&self, elevation: f32) -> [f32; 3] {
-    self
-      .heights
-      .iter()
-      .find(|p| elevation <= p.max_height)
-      .map(|p| p.color)
-      .unwrap_or_else(|| [1., 0., 0.])
-  }
-
-  pub fn to_bytes(&self) -> Vec<[f32; 4]> {
-    (0..100).map(|_idx| {
-      // let v = 1. / (idx as f32);
-      // let c = self.evaluate(v);
-      let c = self.heights[0].color;
-      [c[0], c[1], c[2], 1.]
-    }).collect()
-  }
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct TextureHeightParameters {
-  max_height: f32,
-  color: [f32; 3],
-}
-
-impl TextureHeightParameters {
-  fn new() -> Self {
-    Self {
-      max_height: 1.,
-      color: [0.68, 0.48, 0.],
-    }
-  }
-}
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen]
-impl TextureHeightParameters {
-  pub fn generate() -> String {
-    serde_json::to_string(&TextureHeightParameters::new()).unwrap()
-  }
 }

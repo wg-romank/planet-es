@@ -69,11 +69,11 @@ const addVectorGroup = (parent, params, name, min, max) => {
 let ui = new UIL.Gui({w: 300});
 ui.add('title', { name:'Гуга-Муга'});
 
-ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 1, max: 8, precision: 0}).onChange(fr => {
+ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 1, max: 128, precision: 0}).onChange(fr => {
   parameters.face_resolution = fr
 })
 
-ui.add('slide', { name: 'Radius', value: parameters.radius, min: 0, max: 1, step: 0.01}).onChange(r => {
+ui.add('slide', { name: 'Radius', value: parameters.radius, min: 0, max: 2, step: 0.01}).onChange(r => {
   parameters.radius = r
 })
 
@@ -180,27 +180,23 @@ ui.add('button', {name: 'Add Filter'}).onChange(() => {
   addFilter(meshFilters, params)
 })
 
-let textureParameters = ui.add('group', {name: 'Texture'});
+let tp = ui.add('group', {name: 'Texture'});
 
-const addHeight = (parent, heightParameters) => {
-  parent.add('color', { name:'Color', type:'rgba', value: heightParameters.color }).onChange(c => {
-    heightParameters.color = hex2rgb(c)
-  }) 
+tp.add('color', { name:'Color', type:'rgba', value: parameters.texture_parameters.color }).onChange(c => {
+  parameters.texture_parameters.color = hex2rgb(c)
+})
 
-  parent.open()
-}
-
-parameters.texture_parameters.heights.forEach(h => addHeight(textureParameters, h))
-
-textureParameters.add('slide', { name: 'Scale', value: parameters.texture_parameters.extrude_scale, min: -1., max: 1. }).onChange(s => {
+tp.add('slide', { name: 'Scale', value: parameters.texture_parameters.extrude_scale, min: -1., max: 1. }).onChange(s => {
   parameters.texture_parameters.extrude_scale = s
 })
 
-textureParameters.add('button', {name: 'Load texture'}).onChange(() => {
+tp.add('button', {name: 'Load texture'}).onChange(() => {
   UIL.Files.load({ callback: (data, name) => {
     r.load_texture(name, data);
   }})
 })
+
+tp.open()
 
 const set_parameters = (p) => {
   let url = new URL(window.location)
@@ -213,6 +209,8 @@ ui.add('button', {name: 'Save & Share'}).onChange(() => set_parameters(parameter
 ui.add('button', {name: 'Export Model'}).onChange(() => {
   UIL.Files.save({name: 'planet.obj', data: r.export_to_obj(), type: 'text'})
 })
+
+// moving with mouse below
 
 let isDown = false;
 let clientXOffset = 0;

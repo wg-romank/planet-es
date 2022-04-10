@@ -4,6 +4,7 @@ use crate::shaders::attributes::VertexIndex;
 
 use crate::parameters::RenderParameters;
 use crate::geometry::util::Wavefront;
+use crate::geometry::util::xyz_to_latlonuv;
 
 use bracket_noise::prelude::FastNoise;
 use vek::Vec3 as Vek3;
@@ -57,7 +58,7 @@ impl Face {
           indices.push(i + 1);
           indices.push(i + res as VertexIndex + 1);
         }
-        uvs.push((scale_x, scale_y));
+        uvs.push(xyz_to_latlonuv(poin_on_unit_sphere));
       }
     }
 

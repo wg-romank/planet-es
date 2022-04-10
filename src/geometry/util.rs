@@ -2,6 +2,20 @@ use glsmrs::{Ctx, mesh::Mesh, attributes::{AttributeVector3, AttributeScalar, At
 
 use crate::shaders::attributes::{PlanetVertex, VertexIndex};
 
+use vek::Vec3 as Vek3;
+
+const PI: f32 = core::f64::consts::PI as f32;
+
+pub fn xyz_to_latlonuv(p: Vek3<f32>) -> (f32, f32) {
+  let lon = f32::atan2(p.x, -p.z); // [-pi, pi]
+  let u = 1. - (lon + PI) / (2. * PI);
+
+  let lat = f32::asin(p.y); // [-pi/2, pi/2]
+  let v = 1. - (lat + PI / 2.) / PI;
+
+  (u, v)
+}
+
 pub trait Wavefront: Sized {
   fn vertices(&self) -> &[PlanetVertex];
   fn indices(&self) -> &[VertexIndex];

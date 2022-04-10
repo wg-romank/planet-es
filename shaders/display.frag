@@ -9,8 +9,11 @@ varying vec2 v_uv;
 
 uniform vec3 blend;
 uniform mat4 normalMatrix;
+
 uniform vec3 lightPosition;
 uniform sampler2D shadow_map;
+
+uniform vec3 color;
 
 uniform vec2 height_map_size;
 uniform sampler2D height_map;
@@ -20,6 +23,7 @@ uniform mat4 model;
 uniform float mode;
 uniform float sharpness;
 uniform float scale;
+
 uniform sampler2D waves_1;
 uniform sampler2D waves_2;
 
@@ -80,27 +84,8 @@ float shadow_calc(float dot_ligth_normal) {
 }
 
 vec4 color_calc() {
-  // vec4 color = texture2D(height_map, v_uv);
-  vec4 color = vec4(0.6, 0.5, 0.8, 1.0);
-  return color;
+  return vec4(color, 1.);
 }
-
-// vec3 normal_calc(vec2 uv) {
-//   // vec2 d = 1. / height_map_size;
-//   // vec2 uvNorth = uv + vec2(d.x, 0);
-//   // vec2 uvSouth = uv - vec2(d.x, 0);
-//   // float x = texture2D(height_map, uv + vec2(d.x, 0)).r - texture2D(height_map, uv - vec2(d.x, 0)).r;
-//   // float y = length(texture2D(height_map, uv + vec2(0, d.y)) - texture2D(height_map, uv - vec2(0, d.y)));
-//   // // float z = -1.;
-//   // // return normalize(vec3(x, y, z));
-
-//   float r = texture2D(normal_r, uv).r;
-//   float g = texture2D(normal_g, uv).r;
-//   float b = sqrt(1. - pow(r, 2.) - pow(g, 2.));
-
-//   return vec3(r, g, b);
-// }
-
 
 vec3 coordinate_to_point(vec2 lonlat) {
   float y = sin(lonlat.y);
