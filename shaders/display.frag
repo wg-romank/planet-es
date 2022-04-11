@@ -141,7 +141,7 @@ void main() {
 
   // vec3 norm_transformed = v_norm;
   vec2 uv = compute_uv(v_pos_orig);
-  vec3 norm_transformed = normal_calc(uv);
+  vec3 norm_transformed = height_map_size != vec2(0.) ? normal_calc(uv) : v_norm;
 
   //ambient
   vec3 ambient = ambient * color.xyz;

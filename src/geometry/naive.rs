@@ -273,16 +273,16 @@ impl Planet {
     let face_stride = faces[0].vertices.len();
     let (vs, indices, uvs) = Self::faces_to_single_mesh(faces, face_stride);
 
-    let normals = Self::make_normals(&vs, parameters.face_resolution, face_stride);
+    // let normals = Self::make_normals(&vs, parameters.face_resolution, face_stride);
 
     let vertices = vs
       .into_iter()
-      .zip(normals.into_iter())
+      // .zip(normals.into_iter())
       .zip(uvs.into_iter())
-      .map(|((v, n), u)| {
+      .map(|(v, u)| {
         PlanetVertex::new(
           v,
-          n,
+          v.normalized(),
           0.,
           Vek2::new(u.0, u.1),
         )
