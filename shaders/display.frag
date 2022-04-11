@@ -19,6 +19,9 @@ uniform vec2 height_map_size;
 uniform sampler2D height_map;
 uniform float extrude_scale;
 
+uniform vec2 color_map_size;
+uniform sampler2D color_map;
+
 uniform float mode;
 uniform float sharpness;
 uniform float scale;
@@ -82,8 +85,8 @@ float shadow_calc(float dot_ligth_normal) {
   return shadow / 9.0;
 }
 
-vec4 color_calc() {
-  return vec4(color, 1.);
+vec4 color_calc(vec2 uv) {
+  return color_map_size != vec2(0.) ? texture2D(color_map, uv) : vec4(color, 1.);
 }
 
 vec3 coordinate_to_point(vec2 lonlat) {
@@ -136,12 +139,13 @@ vec3 blend_normals(vec2 uv, vec3 norm) {
 }
 
 void main() {
-  vec4 color = color_calc();
+  vec2 uv = compute_uv(v_pos_orig);
+
+  vec4 color = color_calc(uv);
 
   // vec3 trip_normal = triplanar(waves_1, v_norm, v_pos_orig);
   // vec3 trip_normal = v_norm;
 
-  vec2 uv = compute_uv(v_pos_orig);
   vec3 norm = height_map_size != vec2(0.) ? blend_normals(uv, v_norm) : v_norm;
   vec3 norm_transformed = (normalMatrix * vec4(norm, 0.)).xyz;
 

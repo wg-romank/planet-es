@@ -190,9 +190,15 @@ tp.add('slide', { name: 'Scale', value: parameters.texture_parameters.extrude_sc
   parameters.texture_parameters.extrude_scale = s
 })
 
-tp.add('button', {name: 'Load texture'}).onChange(() => {
+tp.add('button', {name: 'Bump texture'}).onChange(() => {
   UIL.Files.load({ callback: (data, name) => {
-    r.load_texture(name, data);
+    r.load_texture(name, data, fl.MapKind.Height);
+  }})
+})
+
+tp.add('button', {name: 'Color texture'}).onChange(() => {
+  UIL.Files.load({ callback: (data, name) => {
+    r.load_texture(name, data, fl.MapKind.Color);
   }})
 })
 

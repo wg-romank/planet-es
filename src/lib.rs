@@ -28,6 +28,11 @@ mod webapp {
   }
 
   #[wasm_bindgen]
+  pub enum MapKind {
+    Height, Color
+  }
+
+  #[wasm_bindgen]
   impl WebApp {
     pub fn from(canvas_name: &str, parameters: &str) -> WebApp {
       console_error_panic_hook::set_once();
@@ -59,7 +64,7 @@ mod webapp {
       self.render.frame(elapsed, &self.parameters);
     }
 
-    pub fn load_texture(&mut self, name: &str, encoded: &str) -> Result<(), String> {
+    pub fn load_texture(&mut self, name: &str, encoded: &str, kind: MapKind) -> Result<(), String> {
       let mut split = encoded.split(",");
       let format = split.next().unwrap();
       let data = split.next().unwrap();
@@ -71,7 +76,10 @@ mod webapp {
       let data_binary = decode(data)
         .map_err(|e| format!("unable to decode data {}", e))?;
 
-      self.render.update_texture(&data_binary)
+      match kind {
+          MapKind::Height => self.render.update_hm(&data_binary),
+          MapKind::Color => self.render.update_cm(&data_binary),
+      }
     }
 
     pub fn rotate(&mut self, leftright: f32, topdown: f32) {

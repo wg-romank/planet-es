@@ -72,6 +72,7 @@ pub struct Render {
   display_fb: EmptyFramebuffer,
   shadow_fb: DepthFrameBuffer,
   height_map: Option<HeigtMap>,
+  color_map: Option<HeigtMap>,
   // waves_texture1: TextureHandle,
   // waves_texture2: Texture<Dim2, RGBA32F>,
   model: Mat4<f32>,
@@ -118,6 +119,7 @@ impl Render {
       shadow_fb: Self::make_shadow_map(&ctxt, &parameters)?,
       display_fb,
       height_map: None,
+      color_map: None,
       // waves_texture1,
       // waves_texture2,
       model: Self::compute_model(&parameters, &canvas_viewport),
@@ -139,8 +141,14 @@ impl Render {
     self.light_model = Self::compute_light_model(parameters);
   }
 
-  pub fn update_texture(&mut self, bytes: &[u8]) -> Result<(), String> {
+  pub fn update_hm(&mut self, bytes: &[u8]) -> Result<(), String> {
     self.height_map = Some(to_png_texture(&self.ctxt, bytes)?);
+
+    Ok(())
+  }
+
+  pub fn update_cm(&mut self, bytes: &[u8]) -> Result<(), String> {
+    self.color_map = Some(to_png_texture(&self.ctxt, bytes)?);
 
     Ok(())
   }
@@ -174,6 +182,15 @@ impl Render {
     if let Some(hm) = height_map.as_mut() {
       vec![("height_map", UniformData::Texture(&mut hm.texture)),
       ("height_map_size", UniformData::Vector2(hm.size))]
+    } else {
+      vec![]
+    }
+  }
+
+  fn cm(color_map: &mut Option<HeigtMap>) -> Vec<(&'static str, UniformData)> {
+    if let Some(hm) = color_map.as_mut() {
+      vec![("color_map", UniformData::Texture(&mut hm.texture)),
+      ("color_map_size", UniformData::Vector2(hm.size))]
     } else {
       vec![]
     }
@@ -217,7 +234,7 @@ impl Render {
       ("sharpness", UniformData::Scalar(parameters.sharpness)),
       ("ambient", UniformData::Scalar(parameters.light.ambient)),
       ("diffuse_intensity", UniformData::Scalar(parameters.light.diffuse.intensity)),
-    ].into_iter().chain(Self::hm(&mut self.height_map)).collect::<HashMap<_, _>>();
+    ].into_iter().chain(Self::hm(&mut self.height_map)).chain(Self::cm(&mut self.color_map)).collect::<HashMap<_, _>>();
 
     self.pipeline.shade(
       &self.program,
