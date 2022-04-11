@@ -2,10 +2,10 @@ precision highp float;
 
 varying vec3 v_pos_orig;
 varying vec3 v_pos;
-varying vec3 v_norm;
 varying vec4 v_frag_pos_light_space;
+
+varying vec3 v_norm;
 varying float v_elev;
-varying vec2 v_uv;
 
 uniform vec3 blend;
 uniform mat4 normalMatrix;
@@ -104,6 +104,17 @@ vec3 world_point(vec2 uv) {
   return extrude(sphere_point, uv);
 }
 
+vec2 compute_uv(vec3 pos) {
+  vec3 xyz = normalize(pos);
+  float lon = atan(-xyz.z, xyz.x);
+  float u = (lon + PI) / (2. * PI);
+
+  float lat = asin(xyz.y);
+  float v = 1. - (lat + PI / 2.) / PI;
+
+  return vec2(u, v);
+}
+
 vec3 normal_calc(vec2 uv) {
   vec2 d = 1. / height_map_size;
 
@@ -129,7 +140,8 @@ void main() {
   // vec3 norm_transformed = (normalMatrix * vec4(trip_normal, 0.)).xyz;
 
   // vec3 norm_transformed = v_norm;
-  vec3 norm_transformed = normal_calc(v_uv);
+  vec2 uv = compute_uv(v_pos_orig);
+  vec3 norm_transformed = normal_calc(uv);
 
   //ambient
   vec3 ambient = ambient * color.xyz;
@@ -154,7 +166,7 @@ void main() {
   }
 
   if (mode == 1.) {
-    gl_FragColor = vec4(v_uv, 0., 1.);
+    gl_FragColor = vec4(uv, 0., 1.);
   }
 
   if (mode == 2.) {
