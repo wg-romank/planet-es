@@ -62,8 +62,6 @@ const addVectorGroup = (parent, params, name, min, max) => {
   g.add('slide', {name: 'Center Z', value: params.z, min: min, max: max, step: 0.01}).onChange(z => {
     params.z = z
   })
-
-  g.open()
 }
 
 let ui = new UIL.Gui({w: 300});
@@ -123,10 +121,6 @@ diffuse.add('bool', { name: 'Debug shadows', value: parameters.light.diffuse.deb
 
 addVectorGroup(diffuse, parameters.light.diffuse.position, 'Position', -10, 10)
 
-diffuse.open();
-
-light.open();
-
 let meshFilters = ui.add('group', {name: 'Mesh Filters'});
 
 const addFilter = (parent, filterParameters) => {
@@ -158,10 +152,6 @@ const addFilter = (parent, filterParameters) => {
     parameters.mesh_parameters.filters = parameters.mesh_parameters.filters.filter(f => f != filterParameters)
     meshFilters.remove(filter)
   })
-
-  filter.open()
-
-  parent.open()
 }
 
 meshFilters.add('bool', { name: 'Mask', value: parameters.mesh_parameters.use_first_layer_as_mask}).onChange(m => {
