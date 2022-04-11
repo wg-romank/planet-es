@@ -62,7 +62,7 @@ pub struct HeigtMap {
 
 pub struct Render {
   pub ctxt: Ctx,
-  pub planet_mesh: Planet,
+  pub planet_mesh: IcoPlanet,
   pipeline: Pipeline,
   planet: Mesh,
   quad: Mesh,
@@ -93,7 +93,7 @@ impl Render {
 
     let display_fb = EmptyFramebuffer::new(&ctxt, canvas_viewport);
 
-    let planet_mesh = Planet::new(&parameters);
+    let planet_mesh = IcoPlanet::new(&parameters);
 
     let planet = planet_mesh
       .to_tess(&ctxt)
@@ -129,7 +129,7 @@ impl Render {
   }
 
   pub fn update_mesh(&mut self, parameters: &RenderParameters) {
-    self.planet_mesh = Planet::new(&parameters);
+    self.planet_mesh = IcoPlanet::new(&parameters);
     self.planet = self
       .planet_mesh
       .to_tess(&self.ctxt)

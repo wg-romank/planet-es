@@ -84,7 +84,7 @@ impl RenderParameters {
       scale: 1.,
       sharpness: 1.,
       light: LightingParameters::new(),
-      face_resolution: 64,
+      face_resolution: 4,
       radius: 0.6,
       mesh_parameters: MeshParameters::new(),
       texture_parameters: TextureParameters::new(),
@@ -157,8 +157,8 @@ impl MeshParameters {
     Self {
       frequency: 0.5,
       use_first_layer_as_mask: false,
-      // filters: vec![MeshFilterParameters::default()],
-      filters: vec![],
+      filters: vec![MeshFilterParameters::default()],
+      // filters: vec![],
     }
   }
 

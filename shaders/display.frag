@@ -107,7 +107,7 @@ vec3 world_point(vec2 uv) {
 vec2 compute_uv(vec3 pos) {
   vec3 xyz = normalize(pos);
   float lon = atan(-xyz.z, xyz.x);
-  float u = (lon + PI) / (2. * PI);
+  float u = 1. - (lon + PI) / (2. * PI);
 
   float lat = asin(xyz.y);
   float v = 1. - (lat + PI / 2.) / PI;
@@ -128,7 +128,11 @@ vec3 normal_calc(vec2 uv) {
 
   vec3 normal = normalize(cross(ns, ew));
 
-  return normal;
+  return vec3(normal.x, normal.y, -normal.z);
+}
+
+vec3 blend_normals(vec2 uv, vec3 norm) {
+  return normalize((1. - scale) * norm + scale * normal_calc(uv));
 }
 
 void main() {
@@ -141,7 +145,7 @@ void main() {
 
   // vec3 norm_transformed = v_norm;
   vec2 uv = compute_uv(v_pos_orig);
-  vec3 norm_transformed = height_map_size != vec2(0.) ? normal_calc(uv) : v_norm;
+  vec3 norm_transformed = height_map_size != vec2(0.) ? blend_normals(uv, v_norm) : v_norm;
 
   //ambient
   vec3 ambient = ambient * color.xyz;
