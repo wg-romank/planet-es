@@ -162,8 +162,7 @@ void main() {
   // float kd = dot(norm_transformed, -normalize(lightPosition));
   // vec3 diffuse = kd * color.xyz;
   
-  // float shadow = shadow_calc(dot_light_normal);
-  float shadow = 1.0;
+  float shadow = shadow_calc(dot_light_normal);
 
   vec3 lighting = ((diffuse * shadow) + ambient) * color.xyz;
 
