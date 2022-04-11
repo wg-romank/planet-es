@@ -19,7 +19,6 @@ uniform vec2 height_map_size;
 uniform sampler2D height_map;
 uniform float extrude_scale;
 
-uniform mat4 model;
 uniform float mode;
 uniform float sharpness;
 uniform float scale;
@@ -131,6 +130,7 @@ vec3 normal_calc(vec2 uv) {
   return vec3(normal.x, normal.y, -normal.z);
 }
 
+// todo: how to blend bump normals properly?
 vec3 blend_normals(vec2 uv, vec3 norm) {
   return normalize((1. - scale) * norm + scale * normal_calc(uv));
 }
@@ -139,13 +139,11 @@ void main() {
   vec4 color = color_calc();
 
   // vec3 trip_normal = triplanar(waves_1, v_norm, v_pos_orig);
-
   // vec3 trip_normal = v_norm;
-  // vec3 norm_transformed = (normalMatrix * vec4(trip_normal, 0.)).xyz;
 
-  // vec3 norm_transformed = v_norm;
   vec2 uv = compute_uv(v_pos_orig);
-  vec3 norm_transformed = height_map_size != vec2(0.) ? blend_normals(uv, v_norm) : v_norm;
+  vec3 norm = height_map_size != vec2(0.) ? blend_normals(uv, v_norm) : v_norm;
+  vec3 norm_transformed = (normalMatrix * vec4(norm, 0.)).xyz;
 
   //ambient
   vec3 ambient = ambient * color.xyz;
