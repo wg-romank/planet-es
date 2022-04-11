@@ -62,7 +62,7 @@ impl IcoPlanet {
 
         PlanetVertex::new(
           Vek3::new(p.0.x, p.0.y, p.0.z),
-          Vek3::new(-n.0.z, n.0.y, n.0.x),
+          Vek3::new(n.0.x, n.0.y, n.0.z),
           elevation_normalized,
           Vek2::new(uv.0, uv.1),
         )

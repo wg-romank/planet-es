@@ -108,7 +108,7 @@ vec3 world_point(vec2 uv) {
 
 vec2 compute_uv(vec3 pos) {
   vec3 xyz = normalize(pos);
-  float lon = atan(-xyz.z, xyz.x);
+  float lon = atan(xyz.x, -xyz.z);
   float u = 1. - (lon + PI) / (2. * PI);
 
   float lat = asin(xyz.y);
@@ -130,7 +130,7 @@ vec3 normal_calc(vec2 uv) {
 
   vec3 normal = normalize(cross(ns, ew));
 
-  return vec3(normal.x, normal.y, -normal.z);
+  return normal;
 }
 
 // todo: how to blend bump normals properly?
