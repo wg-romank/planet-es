@@ -1,7 +1,8 @@
-import * as fl from "florest";
+import * as p from "planet-es";
 import * as UIL from "uil";
 
-let canvas = document.getElementById("florest-canvas");
+let canvas_id = "planet-es-canvas";
+let canvas = document.getElementById(canvas_id);
 const brect = canvas.getBoundingClientRect();
 
 canvas.setAttribute('width', brect.width);
@@ -15,7 +16,7 @@ if (arr.length > 1 && arr[1] != '') {
   parameters_string = atob(decodeURIComponent(raw))
 }
 
-let r = fl.WebApp.from("florest-canvas", parameters_string);
+let r = p.WebApp.from(canvas_id, parameters_string);
 
 let parameters = JSON.parse(r.parameters());
 
@@ -165,7 +166,7 @@ meshFilters.add('slide', { name: 'Frequency', value: parameters.mesh_parameters.
 parameters.mesh_parameters.filters.forEach(f => addFilter(meshFilters, f))
 
 ui.add('button', {name: 'Add Filter'}).onChange(() => {
-  let params = JSON.parse(fl.MeshFilterParameters.generate())
+  let params = JSON.parse(p.MeshFilterParameters.generate())
   parameters.mesh_parameters.filters.push(params)
   addFilter(meshFilters, params)
 })
@@ -182,13 +183,13 @@ tp.add('slide', { name: 'Scale', value: parameters.texture_parameters.extrude_sc
 
 tp.add('button', {name: 'Bump texture'}).onChange(() => {
   UIL.Files.load({ callback: (data, name) => {
-    r.load_texture(name, data, fl.MapKind.Height);
+    r.load_texture(name, data, p.MapKind.Height);
   }})
 })
 
 tp.add('button', {name: 'Color texture'}).onChange(() => {
   UIL.Files.load({ callback: (data, name) => {
-    r.load_texture(name, data, fl.MapKind.Color);
+    r.load_texture(name, data, p.MapKind.Color);
   }})
 })
 
