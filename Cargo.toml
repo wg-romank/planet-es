@@ -15,13 +15,11 @@ icosahedron = { path = "../icosahedron" }
 glsmrs = { path = "../glsmrs" }
 image = { version = "0.24", features = ["png", "jpeg", "webp", "tiff", "bmp"], default_features = false }
 base64 = "0.13.0"
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3.37"
 wasm-bindgen = "0.2.60"
 console_error_panic_hook = "*"
 
-[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+[dependencies.web-sys]
 version = "0.3.56"
 features = [
   'console',
@@ -38,7 +36,7 @@ features = [
   'Window',
 ]
 
-[target.'cfg(target_arch = "wasm32")'.dependencies.getrandom]
+[dependencies.getrandom]
 features = ['js']
 
 [profile.release]

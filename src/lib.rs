@@ -4,8 +4,7 @@ mod log;
 pub mod parameters;
 pub mod shaders;
 
-#[cfg(target_arch = "wasm32")]
-mod webapp {
+pub mod webapp {
   use crate::parameters::RenderParameters;
   use crate::shaders::Render;
   use crate::geometry::util::Wavefront;
@@ -77,17 +76,17 @@ mod webapp {
         .map_err(|e| format!("unable to decode data {}", e))?;
 
       match kind {
-          MapKind::Height => self.render.update_hm(&data_binary),
+          MapKind::Height => self.render.vertex_render_data.update_hm(todo!(), &data_binary),
           MapKind::Color => self.render.update_cm(&data_binary),
       }
     }
 
     pub fn rotate(&mut self, leftright: f32, topdown: f32) {
-      self.render.rotate(leftright, topdown)
+      self.render.vertex_render_data.rotate(leftright, topdown)
     }
 
     pub fn set_rotated(&mut self) {
-      self.render.set_rotated()
+      self.render.vertex_render_data.set_rotated()
     }
 
     pub fn export_to_obj(&self) -> String {

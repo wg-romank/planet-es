@@ -1,7 +1,6 @@
 use bracket_noise::prelude::FastNoise;
 use serde::{Deserialize, Serialize};
 
-#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 use vek::Vec3 as Vek3;
@@ -124,7 +123,6 @@ impl MeshFilterParameters {
   }
 }
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 impl MeshFilterParameters {
   pub fn generate() -> String {
