@@ -16,7 +16,6 @@ use gl::texture::EmptyFramebuffer;
 use gl::texture::InternalFormat;
 use gl::texture::Viewport;
 use gl::texture::{Framebuffer, UploadedTexture, TextureSpec};
-use vek::Mat4;
 
 use crate::shaders::vertex_render_data::VertexRenderData;
 use crate::shaders::util::to_png_texture;
@@ -107,6 +106,10 @@ impl Render {
       .expect("failed to create planet");
 
     self.vertex_render_data.update(&self.canvas_viewport, parameters)
+  }
+
+  pub fn update_hm(&mut self, bytes: &[u8]) -> Result<(), String> {
+    self.vertex_render_data.update_hm(&self.ctxt, bytes)
   }
 
   pub fn update_cm(&mut self, bytes: &[u8]) -> Result<(), String> {

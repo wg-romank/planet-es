@@ -16,7 +16,6 @@ pub mod webapp {
   use glsmrs::texture::Viewport;
   use glsmrs::util::get_canvas;
   use glsmrs::util::get_ctx_from_canvas;
-  use image::ImageFormat;
   use wasm_bindgen::prelude::*;
   use web_sys::WebGlRenderingContext;
 
@@ -76,7 +75,7 @@ pub mod webapp {
         .map_err(|e| format!("unable to decode data {}", e))?;
 
       match kind {
-          MapKind::Height => self.render.vertex_render_data.update_hm(todo!(), &data_binary),
+          MapKind::Height => self.render.update_hm(&data_binary),
           MapKind::Color => self.render.update_cm(&data_binary),
       }
     }
