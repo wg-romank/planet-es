@@ -66,7 +66,7 @@ const addVectorGroup = (parent, params, name, min, max) => {
 }
 
 let ui = new UIL.Gui({w: 300});
-ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 1, max: 128, precision: 0}).onChange(fr => {
+ui.add('slide', { name: 'Detail', value: parameters.face_resolution, min: 1, max: 8, precision: 0}).onChange(fr => {
   parameters.face_resolution = fr
 })
 

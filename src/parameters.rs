@@ -71,6 +71,7 @@ pub struct RenderParameters {
   pub light: LightingParameters,
   pub face_resolution: usize,
   pub radius: f32,
+  pub rotation_speed: f32,
   pub mesh_parameters: MeshParameters,
   pub texture_parameters: TextureParameters,
 }
@@ -85,6 +86,7 @@ impl RenderParameters {
       light: LightingParameters::new(),
       face_resolution: 5,
       radius: 0.6,
+      rotation_speed: 0.3,
       mesh_parameters: MeshParameters::new(),
       texture_parameters: TextureParameters::new(),
     }

@@ -120,12 +120,12 @@ impl Render {
   }
 
   pub fn frame(&mut self, elapsed: f32, parameters: &RenderParameters) {
-    self.shadow_pass(&parameters);
+    self.shadow_pass(&parameters, elapsed);
 
     if parameters.light.diffuse.debug_shadows {
       self.debug_pass();
     } else {
-      self.display_pass(&parameters)
+      self.display_pass(&parameters, elapsed)
     }
   }
 }
@@ -135,8 +135,8 @@ impl Render {
     tex_unis("color_map", "color_map_size", cm)
   }
 
-  fn shadow_pass(&mut self, parameters: &RenderParameters) {
-    let uni_values = self.vertex_render_data.compute_unis(parameters);
+  fn shadow_pass(&mut self, parameters: &RenderParameters, elapsed: f32) {
+    let uni_values = self.vertex_render_data.compute_unis(parameters, elapsed);
 
     self.pipeline.shade(
       &self.shadow_program,
@@ -149,6 +149,7 @@ impl Render {
   fn display_pass(
     &mut self,
     parameters: &RenderParameters,
+    elapsed: f32,
   ) {
     let uni_values = vec![
       // todo waves
@@ -162,7 +163,7 @@ impl Render {
       ("sharpness", UniformData::Scalar(parameters.sharpness)),
       ("ambient", UniformData::Scalar(parameters.light.ambient)),
       ("diffuse_intensity", UniformData::Scalar(parameters.light.diffuse.intensity)),
-    ].into_iter().chain(self.vertex_render_data.compute_unis(parameters)).chain(Self::cm(&mut self.color_map)).collect::<HashMap<_, _>>();
+    ].into_iter().chain(self.vertex_render_data.compute_unis(parameters, elapsed)).chain(Self::cm(&mut self.color_map)).collect::<HashMap<_, _>>();
 
     self.pipeline.shade(
       &self.program,
