@@ -83,7 +83,7 @@ impl RenderParameters {
       scale: 1.,
       sharpness: 1.,
       light: LightingParameters::new(),
-      face_resolution: 4,
+      face_resolution: 5,
       radius: 0.6,
       mesh_parameters: MeshParameters::new(),
       texture_parameters: TextureParameters::new(),
@@ -155,8 +155,8 @@ impl MeshParameters {
     Self {
       frequency: 0.5,
       use_first_layer_as_mask: false,
-      filters: vec![MeshFilterParameters::default()],
-      // filters: vec![],
+      // filters: vec![MeshFilterParameters::default()],
+      filters: vec![],
     }
   }
 
@@ -197,8 +197,8 @@ pub struct TextureParameters {
 impl TextureParameters {
   fn new() -> Self {
     Self {
-      color: [0.68, 0.48, 0.],
-      extrude_scale: 0.1,
+      color: [0.68, 0.68, 0.68],
+      extrude_scale: 0.03,
     }
   }
 

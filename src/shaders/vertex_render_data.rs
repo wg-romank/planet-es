@@ -7,6 +7,8 @@ use crate::parameters::RenderParameters;
 use crate::shaders::util::to_png_texture;
 use crate::shaders::util::tex_unis;
 
+use super::MERCURY;
+
 pub struct VertexRenderData {
   light_model: Mat4<f32>,
   model: Mat4<f32>,
@@ -16,14 +18,14 @@ pub struct VertexRenderData {
 }
 
 impl VertexRenderData {
-  pub fn new(viewport: &Viewport, params: &RenderParameters) -> Self {
-    Self {
+  pub fn new(ctx: &Ctx, viewport: &Viewport, params: &RenderParameters) -> Result<Self, String> {
+    Ok(Self {
       light_model: Self::compute_light_model(params),
       model: Self::compute_model(params, viewport),
       rotation: Mat4::identity(),
       rotation_rel: Mat4::identity(),
-      height_map: None,
-    }
+      height_map: Some(to_png_texture(ctx, MERCURY)?),
+    })
   }
 
   pub fn compute_unis(&mut self, params: &RenderParameters) -> HashMap<&'static str, UniformData> {

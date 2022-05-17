@@ -32,6 +32,7 @@ const FS_STR: &str = include_str!("../../shaders/display.frag");
 const DEBUG_VS_STR: &str = include_str!("../../shaders/quad.vert");
 const DEBUG_FS_STR: &str = include_str!("../../shaders/debug_shadows.frag");
 
+const MERCURY: &[u8] = include_bytes!("../../assets/mercury.jpg");
 // const WAVES_1: &[u8; 355381] = include_bytes!("../../assets/water3.png");
 
 use glsmrs as gl;
@@ -94,7 +95,7 @@ impl Render {
       // waves_texture1,
       // waves_texture2,
       canvas_viewport,
-      vertex_render_data: VertexRenderData::new(&canvas_viewport, parameters),
+      vertex_render_data: VertexRenderData::new(&ctxt, &canvas_viewport, parameters)?,
     })
   }
 
