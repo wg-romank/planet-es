@@ -85,7 +85,7 @@ impl RenderParameters {
       sharpness: 1.,
       light: LightingParameters::new(),
       face_resolution: 5,
-      radius: 0.6,
+      radius: 0.8,
       rotation_speed: 0.3,
       mesh_parameters: MeshParameters::new(),
       texture_parameters: TextureParameters::new(),
