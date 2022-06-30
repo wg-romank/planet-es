@@ -11,7 +11,11 @@ uniform vec3 blend;
 uniform mat4 normalMatrix;
 
 uniform vec3 lightPosition;
+uniform vec3 view_position;
 uniform sampler2D shadow_map;
+
+uniform float specular_strength;
+uniform float specular_falloff;
 
 uniform vec3 color;
 
@@ -158,13 +162,15 @@ void main() {
   float diff = max(dot_light_normal, 0.0);
   vec3 diffuse = diffuse_intensity * diff * color.xyz;
 
-  // vec3 norm_transformed = (normalMatrix * vec4(v_norm, 0.)).xyz;
-  // float kd = dot(norm_transformed, -normalize(lightPosition));
-  // vec3 diffuse = kd * color.xyz;
+  //specular
+  vec3 view_dir = normalize(view_position - v_pos);
+  vec3 reflect_dir = reflect(-light_dir, norm_transformed);
+  float spec = pow(max(dot(view_dir, reflect_dir), 0.0), specular_falloff);
+  vec3 specular = specular_strength * spec * color.xyz;
   
   float shadow = shadow_calc(dot_light_normal);
 
-  vec3 lighting = ((diffuse * shadow) + ambient) * color.xyz;
+  vec3 lighting = (((specular + diffuse) * shadow) + ambient) * color.xyz;
 
   if (mode == 0.) {
     gl_FragColor = vec4(norm_transformed, 1.);

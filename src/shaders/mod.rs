@@ -154,7 +154,9 @@ impl Render {
     let uni_values = vec![
       // todo waves
       // todo height map
-      ("lightPosition", UniformData::Vector3(parameters.light.diffuse.position.into_array())),
+      ("lightPosition", UniformData::Vector3(parameters.light.position.into_array())),
+      ("specular_strength", UniformData::Scalar(parameters.light.specular.specular_strength)),
+      ("specular_falloff", UniformData::Scalar(parameters.light.specular.specular_falloff)),
       ("shadow_map", UniformData::Texture(self.shadow_fb.depth_slot())),
       ("color", UniformData::Vector3(parameters.texture_parameters.color)),
       ("mode", UniformData::Scalar(parameters.mode.in_shader())),

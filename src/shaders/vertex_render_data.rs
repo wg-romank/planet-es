@@ -14,6 +14,7 @@ pub struct VertexRenderData {
   projection: Mat4<f32>,
   view: Mat4<f32>,
   rotation: Mat4<f32>,
+  camera_pos: Vek4<f32>,
   camera_rot_rel: Mat4<f32>,
   camera_rot: Mat4<f32>,
   height_map: Option<UploadedTexture>,
@@ -21,13 +22,14 @@ pub struct VertexRenderData {
 
 impl VertexRenderData {
   pub fn new(ctx: &Ctx, viewport: &Viewport, params: &RenderParameters) -> Result<Self, String> {
-    let projection = Self::compute_proj(params, viewport);
+    let view_pos = Vek4::new(2., 0., 0., 0.);
 
     Ok(Self {
       light_model: Self::compute_light_model(params),
       projection: Self::compute_proj(params, viewport),
-      view: Self::compute_view(Mat4::identity()),
+      view: Self::compute_view(view_pos.xyz().clone()),
       rotation: Mat4::identity(),
+      camera_pos: view_pos.clone(),
       camera_rot_rel: Mat4::identity(),
       camera_rot: Mat4::identity(),
       height_map: Some(to_png_texture(ctx, MERCURY)?),
@@ -47,6 +49,7 @@ impl VertexRenderData {
       ("extrude_scale", UniformData::Scalar(params.texture_parameters.extrude_scale)),
       ("model", UniformData::Matrix4(self.model().into_col_array())),
       ("light_model", UniformData::Matrix4(self.light_model.into_col_array())),
+      ("view_position", UniformData::Vector3(self.view_position().into_array())),
     ].into_iter().chain(Self::hm(&mut self.height_map)).collect()
   }
 
@@ -69,7 +72,7 @@ impl VertexRenderData {
     self.camera_rot = self.camera_rot_rel
       .rotated_y(leftright)
       .rotated_z(topdown);
-    self.view = Self::compute_view(self.camera_rot);
+    self.view = Self::compute_view(self.view_position());
   }
 
   pub fn set_rotated(&mut self) {
@@ -86,13 +89,17 @@ impl VertexRenderData {
     )
   }
 
-  fn compute_view(rotation: Mat4<f32>) -> Mat4<f32> {
-    Mat4::look_at_rh((Vek4::new(2., 0., 0., 0.) * rotation).xyz(), Vek3::zero(), Vek3::unit_y())
+  fn view_position(&self) -> Vek3<f32> {
+    (self.camera_pos * self.camera_rot).xyz()
+  }
+
+  fn compute_view(position: Vek3<f32>) -> Mat4<f32> {
+    Mat4::look_at_rh(position, Vek3::zero(), Vek3::unit_y())
   }
 
   fn compute_light_model(parameters: &RenderParameters) -> Mat4<f32> {
     let light_view: Mat4<f32> = Mat4::look_at_rh(
-      parameters.light.diffuse.position,
+      parameters.light.position,
       Vek3::zero(),
       Vek3::unit_y(),
     );

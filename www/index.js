@@ -92,6 +92,8 @@ ui.add('slide', { name: 'Sharpness', value: parameters.sharpness, min: 0, max: 1
 
 let light = ui.add('group', { name: 'Light'})
 
+addVectorGroup(light, parameters.light.position, 'Position', -10, 10)
+
 light.add('slide', { name: 'Ambient', value: parameters.light.ambient, min: 0, max: 1, step: 0.01}).onChange(a => {
   parameters.light.ambient = a
 })
@@ -118,7 +120,15 @@ diffuse.add('bool', { name: 'Debug shadows', value: parameters.light.diffuse.deb
   parameters.light.diffuse.debug_shadows = d
 })
 
-addVectorGroup(diffuse, parameters.light.diffuse.position, 'Position', -10, 10)
+let specular = light.add('group', { name: 'Specular' })
+
+specular.add('slide', { name: 'Strength', value: parameters.light.specular.specular_strength, min: 0, max: 2, step: 0.01}).onChange(i => {
+  parameters.light.specular.specular_strength = i
+})
+
+specular.add('slide', { name: 'Falloff', value: parameters.light.specular.specular_falloff, min: 8, max: 256, step: 8}).onChange(i => {
+  parameters.light.specular.specular_falloff = i
+})
 
 let meshFilters = ui.add('group', {name: 'Mesh Filters'});
 

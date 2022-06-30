@@ -29,7 +29,6 @@ pub struct DiffuseLightParameters {
   pub near_clip: f32,
   pub far_clip: f32,
   pub width: f32,
-  pub position: Vek3<f32>,
   pub debug_shadows: bool,
 }
 
@@ -41,23 +40,38 @@ impl DiffuseLightParameters {
       near_clip: 5.18,
       far_clip: 7.37,
       width: 1.,
-      position: Vek3::new(2.8, 3.57, 4.45),
       debug_shadows: false,
     }
   }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct SpecularLightParameters {
+  pub specular_strength: f32,
+  pub specular_falloff: f32,
+}
+
+impl SpecularLightParameters {
+  pub fn new() -> Self {
+    Self { specular_strength: 0.5, specular_falloff: 256. }
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct LightingParameters {
+  pub position: Vek3<f32>,
   pub ambient: f32,
   pub diffuse: DiffuseLightParameters,
+  pub specular: SpecularLightParameters,
 }
 
 impl LightingParameters {
   pub fn new() -> Self {
     Self {
+      position: Vek3::new(2.8, 3.57, 4.45),
       ambient: 0.3,
       diffuse: DiffuseLightParameters::new(),
+      specular: SpecularLightParameters::new(),
     }
   }
 }
