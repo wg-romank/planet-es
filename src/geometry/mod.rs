@@ -4,7 +4,6 @@ use crate::shaders::attributes::QuadVertex;
 
 use vek::Vec2 as Vek2;
 
-pub mod naive;
 pub mod util;
 pub mod ico;
 

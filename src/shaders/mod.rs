@@ -22,7 +22,6 @@ use crate::shaders::util::to_png_texture;
 use crate::shaders::util::tex_unis;
 use crate::geometry::ico::IcoPlanet;
 use crate::geometry::mk_quad;
-use crate::geometry::naive::Planet;
 use crate::geometry::util::Wavefront;
 use crate::parameters::RenderParameters;
 
