@@ -6,8 +6,8 @@ use crate::{
   shaders::attributes::{PlanetVertex, VertexIndex},
 };
 
-use crate::geometry::util::Wavefront;
 use crate::geometry::util::xyz_to_latlonuv;
+use crate::geometry::util::Wavefront;
 
 use vek::Vec2 as Vek2;
 use vek::Vec3 as Vek3;
@@ -29,12 +29,10 @@ impl IcoPlanet {
 
     let mut ico = Polyhedron::new_isocahedron(1.0, parameters.face_resolution as u32);
 
-
     let (hs, uvs, max_height, min_height): (Vec<f32>, Vec<(f32, f32)>, f32, f32) =
-      ico
-        .positions
-        .iter_mut()
-        .fold((vec![], vec![], f32::MIN, f32::MAX), |(mut hs, mut uvs, max_h, min_h), p| {
+      ico.positions.iter_mut().fold(
+        (vec![], vec![], f32::MIN, f32::MAX),
+        |(mut hs, mut uvs, max_h, min_h), p| {
           uvs.push(xyz_to_latlonuv(p.0));
 
           let pp = p.0;
@@ -46,7 +44,8 @@ impl IcoPlanet {
           p.0 = res;
 
           (hs, uvs, max_h.max(mesh_offset), min_h.min(mesh_offset))
-        });
+        },
+      );
 
     ico.compute_face_normals();
     ico.compute_triangle_normals();

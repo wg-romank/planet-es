@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
-use glsmrs::{texture::{UploadedTexture, Viewport}, UniformData, Ctx};
-use vek::{Mat4, FrustumPlanes, Vec3 as Vek3, Vec4 as Vek4};
+use glsmrs::{
+  texture::{UploadedTexture, Viewport},
+  Ctx, UniformData,
+};
+use vek::{FrustumPlanes, Mat4, Vec3 as Vek3, Vec4 as Vek4};
 
 use crate::parameters::RenderParameters;
-use crate::shaders::util::to_png_texture;
 use crate::shaders::util::tex_unis;
+use crate::shaders::util::to_png_texture;
 
 use super::MERCURY;
 
@@ -40,17 +43,39 @@ impl VertexRenderData {
     self.projection * self.view
   }
 
-  pub fn compute_unis(&mut self, params: &RenderParameters, elapsed: f32) -> HashMap<&'static str, UniformData> {
+  pub fn compute_unis(
+    &mut self,
+    params: &RenderParameters,
+    elapsed: f32,
+  ) -> HashMap<&'static str, UniformData> {
     self.rotation = Mat4::identity().rotated_y(elapsed * params.rotation_speed);
 
     vec![
-      ("normalMatrix", UniformData::Matrix4(self.rotation.inverted().transposed().into_col_array())),
-      ("rotation", UniformData::Matrix4(self.rotation.into_col_array())),
-      ("extrude_scale", UniformData::Scalar(params.texture_parameters.extrude_scale)),
+      (
+        "normalMatrix",
+        UniformData::Matrix4(self.rotation.inverted().transposed().into_col_array()),
+      ),
+      (
+        "rotation",
+        UniformData::Matrix4(self.rotation.into_col_array()),
+      ),
+      (
+        "extrude_scale",
+        UniformData::Scalar(params.texture_parameters.extrude_scale),
+      ),
       ("model", UniformData::Matrix4(self.model().into_col_array())),
-      ("light_model", UniformData::Matrix4(self.light_model.into_col_array())),
-      ("view_position", UniformData::Vector3(self.view_position().into_array())),
-    ].into_iter().chain(Self::hm(&mut self.height_map)).collect()
+      (
+        "light_model",
+        UniformData::Matrix4(self.light_model.into_col_array()),
+      ),
+      (
+        "view_position",
+        UniformData::Vector3(self.view_position().into_array()),
+      ),
+    ]
+    .into_iter()
+    .chain(Self::hm(&mut self.height_map))
+    .collect()
   }
 
   fn hm(hm: &mut Option<UploadedTexture>) -> Vec<(&'static str, UniformData)> {
@@ -69,9 +94,7 @@ impl VertexRenderData {
   }
 
   pub fn rotate(&mut self, leftright: f32, topdown: f32) {
-    self.camera_rot = self.camera_rot_rel
-      .rotated_y(leftright)
-      .rotated_z(topdown);
+    self.camera_rot = self.camera_rot_rel.rotated_y(leftright).rotated_z(topdown);
     self.view = Self::compute_view(self.view_position());
   }
 
@@ -98,11 +121,8 @@ impl VertexRenderData {
   }
 
   fn compute_light_model(parameters: &RenderParameters) -> Mat4<f32> {
-    let light_view: Mat4<f32> = Mat4::look_at_rh(
-      parameters.light.position,
-      Vek3::zero(),
-      Vek3::unit_y(),
-    );
+    let light_view: Mat4<f32> =
+      Mat4::look_at_rh(parameters.light.position, Vek3::zero(), Vek3::unit_y());
 
     let light_projection = Mat4::orthographic_rh_no(FrustumPlanes {
       left: -parameters.light.diffuse.width,
@@ -115,5 +135,4 @@ impl VertexRenderData {
 
     light_projection * light_view
   }
-
 }

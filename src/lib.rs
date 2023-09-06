@@ -5,17 +5,17 @@ pub mod parameters;
 pub mod shaders;
 
 pub mod webapp {
+  use crate::geometry::util::Wavefront;
   use crate::parameters::RenderParameters;
   use crate::shaders::Render;
-  use crate::geometry::util::Wavefront;
   use base64::decode;
 
   use console_error_panic_hook;
 
-  use glsmrs::Ctx;
   use glsmrs::texture::Viewport;
   use glsmrs::util::get_canvas;
   use glsmrs::util::get_ctx_from_canvas;
+  use glsmrs::Ctx;
   use wasm_bindgen::prelude::*;
   use web_sys::WebGlRenderingContext;
 
@@ -27,7 +27,8 @@ pub mod webapp {
 
   #[wasm_bindgen]
   pub enum MapKind {
-    Height, Color
+    Height,
+    Color,
   }
 
   #[wasm_bindgen]
@@ -38,12 +39,14 @@ pub mod webapp {
       let parameters: RenderParameters =
         serde_json::from_str(parameters).unwrap_or_else(|_| RenderParameters::new());
       let canvas = get_canvas(canvas_name).expect(&format!("no canvas {}", canvas_name));
-      let webgl_ctx: WebGlRenderingContext = get_ctx_from_canvas(&canvas, "webgl").expect("webgl not found, really?");
+      let webgl_ctx: WebGlRenderingContext =
+        get_ctx_from_canvas(&canvas, "webgl").expect("webgl not found, really?");
       let ctx = Ctx::new(webgl_ctx).expect("failed to create context, no canvas?");
 
       let canvas_viewport = Viewport::new(canvas.width(), canvas.height());
 
-      let render = Render::from(ctx, &parameters, canvas_viewport).expect("failed to create render");
+      let render =
+        Render::from(ctx, &parameters, canvas_viewport).expect("failed to create render");
 
       WebApp { render, parameters }
     }
@@ -71,12 +74,11 @@ pub mod webapp {
 
       log!("name {}", name);
       log!("format {}", format);
-      let data_binary = decode(data)
-        .map_err(|e| format!("unable to decode data {}", e))?;
+      let data_binary = decode(data).map_err(|e| format!("unable to decode data {}", e))?;
 
       match kind {
-          MapKind::Height => self.render.update_hm(&data_binary),
-          MapKind::Color => self.render.update_cm(&data_binary),
+        MapKind::Height => self.render.update_hm(&data_binary),
+        MapKind::Color => self.render.update_cm(&data_binary),
       }
     }
 

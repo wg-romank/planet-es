@@ -1,4 +1,8 @@
-use glsmrs::{Ctx, mesh::Mesh, attributes::{AttributeVector3, AttributeScalar, AttributeVector2}};
+use glsmrs::{
+  attributes::{AttributeScalar, AttributeVector2, AttributeVector3},
+  mesh::Mesh,
+  Ctx,
+};
 
 use crate::shaders::attributes::{PlanetVertex, VertexIndex};
 
@@ -20,15 +24,27 @@ pub trait Wavefront: Sized {
   fn vertices(&self) -> &[PlanetVertex];
   fn indices(&self) -> &[VertexIndex];
 
-  fn to_tess(
-    &self,
-    ctx: &Ctx,
-  ) -> Result<Mesh, String> {
-
-    let positions = self.vertices().iter().map(|v| v.position.into_array()).collect::<Vec<[f32; 3]>>();
-    let norms = self.vertices().iter().map(|v| v.norm.into_array()).collect::<Vec<[f32; 3]>>();
-    let elevations = self.vertices().iter().map(|v| v.elevation).collect::<Vec<f32>>();
-    let uvs = self.vertices().iter().map(|v| v.uv.into_array()).collect::<Vec<[f32; 2]>>();
+  fn to_tess(&self, ctx: &Ctx) -> Result<Mesh, String> {
+    let positions = self
+      .vertices()
+      .iter()
+      .map(|v| v.position.into_array())
+      .collect::<Vec<[f32; 3]>>();
+    let norms = self
+      .vertices()
+      .iter()
+      .map(|v| v.norm.into_array())
+      .collect::<Vec<[f32; 3]>>();
+    let elevations = self
+      .vertices()
+      .iter()
+      .map(|v| v.elevation)
+      .collect::<Vec<f32>>();
+    let uvs = self
+      .vertices()
+      .iter()
+      .map(|v| v.uv.into_array())
+      .collect::<Vec<[f32; 2]>>();
 
     Mesh::new(&ctx, self.indices())?
       .with_attribute::<AttributeVector3>("position", &positions)?

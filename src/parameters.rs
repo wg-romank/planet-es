@@ -53,7 +53,10 @@ pub struct SpecularLightParameters {
 
 impl SpecularLightParameters {
   pub fn new() -> Self {
-    Self { specular_strength: 0.5, specular_falloff: 256. }
+    Self {
+      specular_strength: 0.5,
+      specular_falloff: 256.,
+    }
   }
 }
 
@@ -217,5 +220,4 @@ impl TextureParameters {
       extrude_scale: 0.03,
     }
   }
-
 }

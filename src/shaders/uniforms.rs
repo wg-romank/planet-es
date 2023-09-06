@@ -1,11 +1,6 @@
 // #[derive(Debug, UniformInterface)]
 // pub struct ShaderInterface {
 
-
-
-
-
-
 //   #[uniform(unbound)]
 //   pub blend: Uniform<Vec3<f32>>,
 

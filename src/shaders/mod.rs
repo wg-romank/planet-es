@@ -1,29 +1,29 @@
 pub mod attributes;
 pub mod uniforms;
-pub mod vertex_render_data;
 pub mod util;
+pub mod vertex_render_data;
 
 use std::collections::HashMap;
 
-use gl::Pipeline;
-use gl::Program;
-use gl::GL;
-use gl::Ctx;
-use gl::UniformData;
 use gl::mesh::Mesh;
 use gl::texture::DepthFrameBuffer;
 use gl::texture::EmptyFramebuffer;
 use gl::texture::InternalFormat;
 use gl::texture::Viewport;
-use gl::texture::{Framebuffer, UploadedTexture, TextureSpec};
+use gl::texture::{Framebuffer, TextureSpec, UploadedTexture};
+use gl::Ctx;
+use gl::Pipeline;
+use gl::Program;
+use gl::UniformData;
+use gl::GL;
 
-use crate::shaders::vertex_render_data::VertexRenderData;
-use crate::shaders::util::to_png_texture;
-use crate::shaders::util::tex_unis;
 use crate::geometry::ico::IcoPlanet;
 use crate::geometry::mk_quad;
 use crate::geometry::util::Wavefront;
 use crate::parameters::RenderParameters;
+use crate::shaders::util::tex_unis;
+use crate::shaders::util::to_png_texture;
+use crate::shaders::vertex_render_data::VertexRenderData;
 
 const VS_STR: &str = include_str!("../../shaders/display.vert");
 const FS_STR: &str = include_str!("../../shaders/display.frag");
@@ -68,9 +68,7 @@ impl Render {
 
     let planet_mesh = IcoPlanet::new(&parameters);
 
-    let planet = planet_mesh
-      .to_tess(&ctxt)
-      .expect("failed to create planet");
+    let planet = planet_mesh.to_tess(&ctxt).expect("failed to create planet");
 
     let quad = mk_quad(&ctxt).expect("failed to make quad");
 
@@ -105,7 +103,9 @@ impl Render {
       .to_tess(&self.ctxt)
       .expect("failed to create planet");
 
-    self.vertex_render_data.update(&self.canvas_viewport, parameters)
+    self
+      .vertex_render_data
+      .update(&self.canvas_viewport, parameters)
   }
 
   pub fn update_hm(&mut self, bytes: &[u8]) -> Result<(), String> {
@@ -137,67 +137,101 @@ impl Render {
   fn shadow_pass(&mut self, parameters: &RenderParameters, elapsed: f32) {
     let uni_values = self.vertex_render_data.compute_unis(parameters, elapsed);
 
-    self.pipeline.shade(
-      &self.shadow_program,
-      uni_values,
-      vec![&mut self.planet],
-      &mut self.shadow_fb
-    ).expect("error shadow pass");
+    self
+      .pipeline
+      .shade(
+        &self.shadow_program,
+        uni_values,
+        vec![&mut self.planet],
+        &mut self.shadow_fb,
+      )
+      .expect("error shadow pass");
   }
 
-  fn display_pass(
-    &mut self,
-    parameters: &RenderParameters,
-    elapsed: f32,
-  ) {
+  fn display_pass(&mut self, parameters: &RenderParameters, elapsed: f32) {
     let uni_values = vec![
       // todo waves
       // todo height map
-      ("lightPosition", UniformData::Vector3(parameters.light.position.into_array())),
-      ("specular_strength", UniformData::Scalar(parameters.light.specular.specular_strength)),
-      ("specular_falloff", UniformData::Scalar(parameters.light.specular.specular_falloff)),
-      ("shadow_map", UniformData::Texture(self.shadow_fb.depth_slot())),
-      ("color", UniformData::Vector3(parameters.texture_parameters.color)),
+      (
+        "lightPosition",
+        UniformData::Vector3(parameters.light.position.into_array()),
+      ),
+      (
+        "specular_strength",
+        UniformData::Scalar(parameters.light.specular.specular_strength),
+      ),
+      (
+        "specular_falloff",
+        UniformData::Scalar(parameters.light.specular.specular_falloff),
+      ),
+      (
+        "shadow_map",
+        UniformData::Texture(self.shadow_fb.depth_slot()),
+      ),
+      (
+        "color",
+        UniformData::Vector3(parameters.texture_parameters.color),
+      ),
       ("mode", UniformData::Scalar(parameters.mode.in_shader())),
       // ("blend", UniformData::Vector3(paramters.blend)),
       ("scale", UniformData::Scalar(parameters.scale)),
       ("sharpness", UniformData::Scalar(parameters.sharpness)),
       ("ambient", UniformData::Scalar(parameters.light.ambient)),
-      ("diffuse_intensity", UniformData::Scalar(parameters.light.diffuse.intensity)),
-    ].into_iter().chain(self.vertex_render_data.compute_unis(parameters, elapsed)).chain(Self::cm(&mut self.color_map)).collect::<HashMap<_, _>>();
+      (
+        "diffuse_intensity",
+        UniformData::Scalar(parameters.light.diffuse.intensity),
+      ),
+    ]
+    .into_iter()
+    .chain(self.vertex_render_data.compute_unis(parameters, elapsed))
+    .chain(Self::cm(&mut self.color_map))
+    .collect::<HashMap<_, _>>();
 
-    self.pipeline.shade(
-      &self.program,
-      uni_values,
-      vec![&mut self.planet],
-      &mut self.display_fb,
-    ).expect("error shadow pass");
-
+    self
+      .pipeline
+      .shade(
+        &self.program,
+        uni_values,
+        vec![&mut self.planet],
+        &mut self.display_fb,
+      )
+      .expect("error shadow pass");
   }
 
   fn debug_pass(&mut self) {
     let uni_values = vec![
-      ("depth_map", UniformData::Texture(self.shadow_fb.depth_slot())),
+      (
+        "depth_map",
+        UniformData::Texture(self.shadow_fb.depth_slot()),
+      ),
       // ("depth_map", UniformData::Texture(&mut self.height_map)),
-    ].into_iter().collect::<HashMap<_, _>>();
+    ]
+    .into_iter()
+    .collect::<HashMap<_, _>>();
 
-    self.pipeline.shade(
-      &self.debug_program,
-      uni_values,
-      vec![&mut self.quad],
-      &mut self.display_fb,
-    ).expect("error debug pass");
+    self
+      .pipeline
+      .shade(
+        &self.debug_program,
+        uni_values,
+        vec![&mut self.quad],
+        &mut self.display_fb,
+      )
+      .expect("error debug pass");
   }
 }
 
 impl Render {
-  fn make_shadow_map(ctxt: &Ctx, parameters: &RenderParameters) -> Result<DepthFrameBuffer, String> {
+  fn make_shadow_map(
+    ctxt: &Ctx,
+    parameters: &RenderParameters,
+  ) -> Result<DepthFrameBuffer, String> {
     let side = parameters.light.diffuse.shadow_map_size;
     let (w, h) = (side, side);
     let shadow_texture_spec = TextureSpec::depth([w, h]);
-    let shadow_texture = shadow_texture_spec.upload(ctxt, InternalFormat(GL::UNSIGNED_INT), None)?;
+    let shadow_texture =
+      shadow_texture_spec.upload(ctxt, InternalFormat(GL::UNSIGNED_INT), None)?;
 
-    EmptyFramebuffer::new(&ctxt, gl::texture::Viewport::new(w, h))
-      .with_depth_slot(shadow_texture)
+    EmptyFramebuffer::new(&ctxt, gl::texture::Viewport::new(w, h)).with_depth_slot(shadow_texture)
   }
 }
